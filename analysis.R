@@ -23,11 +23,9 @@ library(h3jsr)
 dir.create("plots/")
 dir.create("data/")
 
-#crashes <- get_stats19("2004", type = "collision")
+crashes <- get_stats19("2004", type = "collision")
 
-#casualties <- get_stats19("2004", type = "casualty")
-
-load("D:/OneDrive/github/stats19_insights/data/collisions_crashes.RData")
+casualties <- get_stats19("2004", type = "casualty")
 
 
 lat <- 51.455317
@@ -128,4 +126,18 @@ tm2 <- tm_shape(bm2)+
   tm_legend(frame = FALSE)
 
 tmap_save(tm2, "plots/worst_cell.png", width = 3200, height = 2800)
+
+#mapview(worst_casualties)
+tm2 <- tm_shape(bm2)+
+  tm_rgb()+
+  tm_shape(worst)+
+  tm_polygons(col = "black", fill_alpha = 0)+
+  tm_shape(worst_casualties)+
+  tm_bubbles(fill = "casualty_type",
+             shape = "casualty_type",
+             #size = "New_Serious",
+             shape.legend = tm_legend_combine("fill")) +
+  tm_title("H3 grid with highest KSI between: 2020 and 2024")+
+  tm_options(frame = FALSE)+
+  tm_legend(frame = FALSE)
 

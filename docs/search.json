@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "STATS19 Stats",
+    "section": "",
+    "text": "These pages show the outputs of the functions/markdown scripts in stats19_stats.\nThe goal of this repository/website is to facilitate people to easily reproduce the DfTs statistical summaries for their local area and/or additional plots and insights to provide data for campaigns where road safety is significant.\nThe first page is a straight up reproduction of the government pedestrian and cyclist factsheets"
+  },
+  {
+    "objectID": "Rmd/ca_test.html",
+    "href": "Rmd/ca_test.html",
+    "title": "Reported road casualties: cyclist factsheet",
+    "section": "",
+    "text": "This report is an adaption of the national DfT road safety factsheets, adapted for the Combined Authority (CA) region shown in the maps below. Combined Authority has been chosen as a significant proportion of the national report is based on modal data which is only available disagregated by CA."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  }
+]

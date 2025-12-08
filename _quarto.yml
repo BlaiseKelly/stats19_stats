@@ -1,5 +1,11 @@
 project:
   type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - about.qmd
+    - Rmd/ca_factsheet_cyclist.Rmd
+
 
 website:
   title: "stats19_stats"
@@ -7,6 +13,8 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: Rmd/ca_factsheet_cyclist.Rmd
+        text: WECA cyclist factsheet
       - about.qmd
 
 format:

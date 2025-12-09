@@ -4,7 +4,7 @@ project:
   render:
     - index.qmd
     - about.qmd
-    - Rmd/ca_factsheet_cyclist.Rmd
+    - Rmd/ca_factsheet_cyclist.qmd
 
 
 website:
@@ -13,7 +13,7 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: Rmd/ca_factsheet_cyclist.Rmd
+      - href: Rmd/ca_factsheet_cyclist.qmd
         text: WECA cyclist factsheet
       - about.qmd
 

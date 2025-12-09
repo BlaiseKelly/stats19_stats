@@ -119,39 +119,27 @@ return(t1)
  
 }
 
-costs_col_ranking_table <- function(crashes, severities = c("Fatal", "Serious", "Slight"), sort_by = c("casualties", "cost", "collisions"), rows = 10){
+costs_col_ranking_table <- function(crashes, severities = c("Fatal", "Serious", "Slight"), sort_by = c("casualties", "cost", "collisions"), table_year = 2024, rows = 10){
   
-  costs_cas_col_per_LA(crashes,severities) |> 
+  LA_sum <- costs_cas_col_per_LA(crashes,severities) |> 
     st_set_geometry(NULL) |> 
-    arrange(desc(sort_by))
-  
-  # format values with commas
-  cwc_tot <- cwc |>
-    ungroup() |>
-    rowwise() |>
-    mutate(casualty_cost = prettyNum(casualty_cost, big.mark = ",", scientific = FALSE),
-           collision_cost = prettyNum(collision_cost, big.mark = ",", scientific = FALSE),
-           total = prettyNum(total_cost, big.mark = ",", scientific = FALSE),
-           total_casualties = round(total_casualties)) |>
-    select(-total_cost)
-  
-  cc_tot_all <- sum(as.numeric(gsub(",","", cwc_tot$total)))
-  
-  start_year <- min(cwc$collision_year)
-  end_year <- max(cwc$collision_year)
+    filter(collision_year = table_year) |> 
+    arrange(desc(sort_by)) |> 
+    slice(1:rows)
   
   # country table
-  t1 <- gt(cwc_tot,auto_align = TRUE) |>
-    cols_width(collision_year ~px(60)) |>
-    cols_label(collision_year = md("**Year**"),
-               collision_severity = md("**Severity**"),
-               total_casualties = md("**Casualties**"),
-               casualty_cost = md("**Casualty cost (£)**"),
-               collision_cost = md("**Collision cost (£)**"),
-               total = md("**Total (£)**")) |>
+  t1 <- gt(LA_sum,auto_align = TRUE) |>
+    cols_width(LAD22NM ~px(60)) |>
+    cols_label(LAD22NM = md("**Local Authority**"),
+               total_collisions = md("**Total collisions**"),
+               total_casualties = md("**Total casualties**"),
+               total_cost = md("**Total cost (£mn)**"),-
+               annual_coll_rank = md("**Collision ranking**"),
+               annual_cas_rank = md("**Casualty ranking**"),
+               annual_cost_rank = md("**Cost ranking**")) |>
     tab_footnote(md("**Source: DfT STATS19 and TAG**")) |>
     tab_header(
-      title = md(paste0("**Number of reported road casualties and value of prevention by year, ",city,": ",start_year, " to ", end_year,"**"))) |>
+      title = md(paste0("**Number of collisions, casualties and the cost for top 10 Local Authorities in ", table_year,"**"))) |>
     tab_options(heading.align = "left",
                 column_labels.border.top.style = "none",
                 table.border.top.style = "none",

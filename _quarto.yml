@@ -5,6 +5,8 @@ project:
     - index.qmd
     - about.qmd
     - Rmd/ca_factsheet_cyclist.qmd
+    - Rmd/dft_pedestrian_factsheet.qmd
+    - Rmd/ca_factsheet_pedestrian.qmd
 
 
 website:
@@ -13,8 +15,12 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: Rmd/dft_pedestrian_factsheet.qmd
+        text: DfT Pedestrian factsheet
+      - href: Rmd/ca_factsheet_pedestrian.qmd
+        text: WECA Cyclist factsheet
       - href: Rmd/ca_factsheet_cyclist.qmd
-        text: WECA cyclist factsheet
+        text: WECA Pedestrian factsheet
       - about.qmd
 
 format:

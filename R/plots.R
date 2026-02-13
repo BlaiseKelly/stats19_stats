@@ -28,6 +28,7 @@ city_plot <- function(city_shape,
                       map_type = c("osm", "carto_light"),
                       border_col = "#ff7733",
                       plot_dir = "plots/",
+                      border_width = 9,
                       width = 5000,
                       height = 5000) {
   map_type <- match.arg(map_type)
@@ -55,7 +56,7 @@ city_plot <- function(city_shape,
     tmap::tm_rgb() +
     tmap::tm_scalebar() +
     tmap::tm_shape(city_shape) +
-    tmap::tm_polygons(fill_alpha = 0, col = border_col, col_alpha = 1, lwd = 10) +
+    tmap::tm_polygons(fill_alpha = 0, col = border_col, col_alpha = 1, lwd = border_width) +
     tmap::tm_layout(frame = FALSE)
   
   out_file <- file.path(plot_dir, paste0(city_name, "_map.png"))
@@ -63,6 +64,12 @@ city_plot <- function(city_shape,
   
   invisible(tm1)
 }
+
+# define the colours for the plot
+cols <- rev(c("#00ab3d", "#005bb2","#c81329"))
+cust_theme <- ggplot2::theme(panel.grid.major = ggplot2::element_line(size = 2))
+# put the elements in a list
+dft_theme <- list(cust_theme, ggplot2::scale_color_manual(values = cols))
 
 
 #' Plot cycling network with segregation classification and summary stats
@@ -570,6 +577,8 @@ tag_plot <- function(crashes,
     dft_theme +
     ggplot2::theme(panel.background = ggplot2::element_blank(),
                    legend.position = "top",
+                   plot.title    = element_text(size = 12),
+                   plot.subtitle = element_text(size = 8),
                    legend.title = ggplot2::element_blank()) +
     ggplot2::ylab("(£ million)") +
     ggplot2::xlab(NULL) +
@@ -645,6 +654,7 @@ casualties_plot <- function(crashes,
                             casualties,
                             city,
                             plot_dir = "plots/",
+                            plot_type = c("static", "interactive"),
                             icon_sized_by_severity = TRUE) {
   if (!dir.exists(plot_dir)) dir.create(plot_dir, recursive = TRUE)
   
@@ -664,8 +674,14 @@ casualties_plot <- function(crashes,
   bm <- basemaps::basemap_raster(ext = casualties_map,
                                  map_service = "carto", map_type = "light")
   
-  sy <- min(casualties_map$year, na.rm = TRUE)
-  ey <- max(casualties_map$year, na.rm = TRUE)
+  sy <- min(casualties$collision_year, na.rm = TRUE)
+  ey <- max(casualties$collision_year, na.rm = TRUE)
+  
+  if(plot_type == "static"){
+    tmap_mode("plot")
+  } else {
+    tmap_mode("view")
+  }
   
   tm2 <- tmap::tm_shape(bm) +
     tmap::tm_rgb() +
@@ -680,8 +696,15 @@ casualties_plot <- function(crashes,
              "and severity represented by size. ", city, ": ", sy, " and ", ey)
     )
   
-  out_file <- file.path(plot_dir, paste0(city, "_cas_type_sev_map.png"))
-  tmap::tmap_save(tm2, out_file, width = 9500, height = 7000, dpi = 650)
+  
+  if(plot_type == "static"){
+    out_file <- file.path(plot_dir, paste0(city, "_cas_type_sev_map.png"))
+    tmap::tmap_save(tm2, out_file, width = 9500, height = 7000, dpi = 650)
+  } else {
+    out_file <- file.path(plot_dir, paste0(city, "_cas_type_sev_map.html"))
+    tmap::tmap_save(tm2, out_file)
+  }
+  
   
   invisible(tm2)
 }
@@ -808,7 +831,7 @@ waffle_plot <- function(data2plot,
                         pal = "poly.sky24",
                         plot_file = "plots/waffle.png") {
   # get enough colours for the variables
-  colz <- c4a(pal, n = length(data2plot))
+  colz <- c4a(pal, n = NROW(data2plot))
   
   # create waffle plot
   p <- waffle::waffle(data2plot,
@@ -818,7 +841,7 @@ waffle_plot <- function(data2plot,
                       title = title)
   
   # save to file
-  ggplot2::ggsave(plot_file, plot = p)
+  ggplot2::ggsave(plot_file, plot = p,dpi = 400)
   
   invisible(p)
 }
@@ -845,21 +868,39 @@ osm_street_casualties_plot <- function(osm_links,
                                        crashes,
                                        year_from,
                                        year_to,
+                                       bgd_map_buff = c("street", "crashes"),
                                        casualties_buffer,
                                        plot_buffer,
-                                       legend_pos = c(0.6, 1),
+                                       legend_pos = NULL,
                                        plot_dir) {
   
   cra_cas_osm <- casualty_osm_link(osm_links, casualties, crashes,
                                    year_from, year_to,
-                                   casualties_buffer = casualties_buffer)
+                                   casualties_buffer = casualties_buffer) |> 
+    mutate(sev_plot_size = if_else(Fatal == 1, 1.5, Serious))
+  
+
+  # if no legend position has been defined, calculate angle of osm link to determine where the legend should go
+  angle <- stplanr::line_bearing(osm_links)
+  if(is.null(legend_pos)){
+legend_pos <- ifelse(angle >= 90 & angle <= 180, list(c(0.8, 1)),
+                   ifelse(angle >= -90 & angle < 0, list(c(0.8, 1)), list(c(0,1))))
+
+legend_pos <- unlist(legend_pos)
+}
   
   bm_ps <- basemaps::basemap_raster(
-    ext = sf::st_buffer(cra_cas_osm, plot_buffer * 2),
+    ext = sf::st_buffer(osm_links, plot_buffer*2),
     map_service = "carto", map_type = "light"
   )
+  if(bgd_map_buff == "crashes"){
+    
   bm_masked <- terra::mask(bm_ps,
                            sf::st_transform(sf::st_buffer(cra_cas_osm, plot_buffer), 3857))
+  } else {
+    bm_masked <- terra::mask(bm_ps,
+                             sf::st_transform(sf::st_buffer(osm_links, plot_buffer), 3857))
+  }
   
   cas_scale <- c("Car occupant", "Motorcyclist", "Cyclist", "Taxi occupant",
                  "Goods vehicle occupant", "Bus occupant", "Other vehicle",
@@ -875,12 +916,12 @@ osm_street_casualties_plot <- function(osm_links,
     tmap::tm_bubbles(fill = "casualty_type",
                      fill.scale = tmap::tm_scale_categorical(levels = cas_scale),
                      shape = "casualty_type",
-                     size = "Serious",
+                     size = "sev_plot_size",
                      shape.legend = tmap::tm_legend_combine("fill"),
                      size.legend = tmap::tm_legend(title = "Severity")) +
     tmap::tm_title(
-      paste0("Collision location with casualty type represented by shape and colour\n",
-             "and severity represented by size. ",
+      paste0("Collision location with casualty type represented by shape and colour ",
+             "and severity represented by size.\n",
              osm_links$name[1], ": ", year_from, " and ", year_to)
     ) +
     tmap::tm_layout(frame = FALSE) +
@@ -888,9 +929,10 @@ osm_street_casualties_plot <- function(osm_links,
   
   out_file <- file.path(plot_dir,
                         paste0(gsub(" ", "_", osm_links$name[1]), "_cas_map.png"))
-  tmap::tmap_save(tm1, out_file, width = 11500, height = 9500, dpi = 1000)
+  #tmap::tmap_save(tm1, out_file, width = 11500, height = 9500, dpi = 1000)
+  tmap::tmap_save(tm1, out_file)
   
-  invisible(tm1)
+  return(tm1)
 }
 
 #' Plot vehicles involved in collisions on a street (OSM link)
@@ -922,20 +964,15 @@ osm_street_vehicles_plot <- function(osm_links,
                                      casualty_types = "All",
                                      year_from,
                                      year_to,
+                                     bgd_map_buff = c("street", "crashes"),
                                      casualties_buffer,
                                      plot_buffer,
-                                     severity_point_sizes = c(2, 1, 0.2),
-                                     legend_pos = c(0.6, 1),
+                                     legend_pos = NULL,
                                      plot_width = 11500,
                                      plot_height = 9500,
                                      plot_dpi = 1000,
                                      plot_dir) {
   
-  
-  collision_severity <- data.frame(
-    collision_severity = c("Fatal", "Serious", "Slight"),
-    sev_plot_size = severity_point_sizes
-  )
   
   cra_veh_osm <- vehicle_osm_link(osm_links = osm_links, 
                                   vehicles = vehicles, 
@@ -945,25 +982,43 @@ osm_street_vehicles_plot <- function(osm_links,
                                   year_to = year_to, 
                                   casualty_types = casualty_types,
                                   casualties_buffer = casualties_buffer) |> 
-    dplyr::left_join(collision_severity, by = "collision_severity")
+    mutate(sev_plot_size = if_else(collision_severity == "Fatal", 1.5,
+                                    if_else(collision_severity == "Serious",1,0.4)))
+  
+  # if no legend position has been defined, calculate angle of osm link to determine where the legend should go
+  angle <- stplanr::line_bearing(osm_links)
+  if(is.null(legend_pos)){
+    legend_pos <- ifelse(angle >= 90 & angle <= 180, list(c(0.8, 1)),
+                         ifelse(angle >= -90 & angle < 0, list(c(0.8, 1)), list(c(0,1))))
+    
+    legend_pos <- unlist(legend_pos)
+  }
+
   
   bm_ps <- basemaps::basemap_raster(
-    ext = sf::st_buffer(cra_veh_osm, plot_buffer * 2),
+    ext = sf::st_buffer(osm_links, plot_buffer*2),
     map_service = "carto", map_type = "light"
   )
   
-  # trim the background to make the plot neater
-  bm_masked <- terra::mask(bm_ps,
-                           sf::st_transform(sf::st_buffer(cra_veh_osm, plot_buffer), 3857))
+  # trim background map to the street or the crashes, makes the plot look a little neater
+  if(bgd_map_buff == "crashes"){
+    
+    bm_masked <- terra::mask(bm_ps,
+                             sf::st_transform(sf::st_buffer(cra_cas_osm, plot_buffer), 3857))
+  } else {
+    bm_masked <- terra::mask(bm_ps,
+                             sf::st_transform(sf::st_buffer(osm_links, plot_buffer), 3857))
+  }
   
   # summarised vehicle categories
   veh_scale <- c("Car", "Motorcycle", "Pedal cycle", "Taxi", "Goods vehicle",
                  "Bus", "Other vehicle", "Data missing or out of range",
                  "Mobility scooter", "Agricultural vehicle", "Ridden horse",
                  "e-scooter")
-  
-  # match
-  cra_veh_osm$vehicle_type <- factor(cra_veh_osm$vehicle_type, levels = veh_scale)
+
+    # match
+  cra_veh_osm <- cra_veh_osm |> 
+    dplyr::mutate(vehicle_type = factor(vehicle_type, levels = veh_scale)) 
   
   tm1 <- tmap::tm_shape(bm_masked) +
     tmap::tm_rgb() +
@@ -972,11 +1027,12 @@ osm_street_vehicles_plot <- function(osm_links,
                      fill.scale = tmap::tm_scale_categorical(levels = veh_scale),
                      shape = "vehicle_type",
                      size = "sev_plot_size",
+                     size.scale = tmap::tm_scale_continuous(),
                      shape.legend = tmap::tm_legend_combine("fill"),
                      size.legend = tmap::tm_legend(title = "Severity")) +
     tmap::tm_title(
-      paste0("Collision location with vehicle type represented by shape and colour\n",
-             "and severity of the collision represented by size, for ",casualty_types, " casualties\n",
+      paste0("Collision location with vehicle type represented by shape and colour",
+             "and severity of the collision represented by\nsize, for ",casualty_types, " casualties",
              osm_links$name[1], ": ", year_from, " and ", year_to)
     ) +
     tmap::tm_layout(frame = FALSE) +
@@ -984,10 +1040,11 @@ osm_street_vehicles_plot <- function(osm_links,
   
   out_file <- file.path(plot_dir,
                         paste0(gsub(" ", "_", osm_links$name[1]), "_", casualty_types, "_veh_map.png"))
-  tmap::tmap_save(tm1, out_file,
-                  width = plot_width, height = plot_height, dpi = plot_dpi)
   
-  invisible(tm1)
+  #tmap::tmap_save(tm1, out_file,width = plot_width, height = plot_height, dpi = plot_dpi)
+  tmap::tmap_save(tm1, out_file)
+  
+  return(tm1)
 }
 
 # same as for collisions but focused on casualties, i.e. cyclists, pedestrians
@@ -1074,7 +1131,7 @@ soa_collision_summaries <- function(crashes, casualties, soa_size = c("lsoa", "m
   
 
 # function to plot any super output area/local authority
-region_plot <- function(region_sf, variable,palette,custom_breaks,title,legend_title){
+region_tag_plot <- function(region_sf, variable,palette,custom_breaks,title,legend_title){
   
   bks <- c(0,2,6,10,15,30,60,100,200,400)
   
@@ -1108,6 +1165,287 @@ region_plot <- function(region_sf, variable,palette,custom_breaks,title,legend_t
   
   
 }
+
+# all break options c("cat", "fixed", "sd", "equal", "pretty", "quantile", "kmeans", "hclust","bclust", "fisher", "jenks", "dpih", "headtails", "log10_pretty")
+
+# function to plot any super output area/local authority
+LA_plot <- function(region_sf, variable = c("total_cost_col", "total_cost_cas", "total_cost"),title = NULL, legend_title = NULL,
+                    palette = "tol.rainbow_wh_br", breaks_style = c("cat", "fixed","log10_pretty")){
+  
+  if(is.null(title)){
+    title = gsub("_", " ", variable)
+  }
+  
+  if(is.null(title)){
+  legend_title = "Value (£million)"
+  }
+  
+  region_sf <- region_sf |> 
+    select(LAD22NM, {{variable}}, SHAPE) |> 
+    arrange(desc(.data[[variable]]))
   
   
+  tm1 <- tm_shape(region_sf) +
+    tm_polygons(fill = variable,
+                fill.scale = tm_scale_intervals(values = palette, style = breaks_style),
+                fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
+                lwd = 0.1
+    )+
+    #tm_text("name",size = 1)
+    tm_title(title,size = 2)+
+    tm_layout(frame = FALSE)+
+    tm_credits(
+      paste0("10 Local Authorities with greatest\nreduction potential:\n", 
+             region_sf$LAD22NM[1],": ", round(region_sf[[variable]][1],1), " (£m)\n",
+             region_sf$LAD22NM[2],": ", round(region_sf[[variable]][2],1), " (£m)\n",
+             region_sf$LAD22NM[3],": ", round(region_sf[[variable]][3],1), " (£m)\n",
+             region_sf$LAD22NM[4],": ", round(region_sf[[variable]][4],1), " (£m)\n",
+             region_sf$LAD22NM[5],": ", round(region_sf[[variable]][5],1), " (£m)\n",
+             region_sf$LAD22NM[6],": ", round(region_sf[[variable]][6],1), " (£m)\n",
+             region_sf$LAD22NM[7],": ", round(region_sf[[variable]][7],1), " (£m)\n",
+             region_sf$LAD22NM[8],": ", round(region_sf[[variable]][8],1), " (£m)\n",
+             region_sf$LAD22NM[9],": ", round(region_sf[[variable]][9],1), " (£m)\n",
+             region_sf$LAD22NM[10],": ", round(region_sf[[variable]][10],1), " (£m)\n"),
+      bg = TRUE, size = 0.7, bg.alpha = 0.3, bg.color = "grey95", position = c(0.9,0.6)
+    )
+  
+
+  return(tm1)
+  
+}
+  
+
+# function to plot any super output area/local authority
+LA_plot_cas <- function(region_sf, variable = c("fatal_cas", "serious_cas", "slight_cas", "total_cas", "ksi_cas"),year = "2024",
+                        title = NULL, legend_title = NULL,palette = "tol.rainbow_wh_br", breaks_style = c("cat", "fixed","log10_pretty")){
+  
+  if(is.null(title)){
+  title = gsub("_cas", "",variable)
+  }
+  
+  region_sf <- region_sf |> 
+    filter(collision_year == year) |> 
+    select(LAD22NM, {{variable}}, SHAPE) |> 
+    arrange(desc(.data[[variable]]))
+  
+  top_title = paste(title, "in", year)
+  
+  tm1 <- tm_shape(region_sf) +
+    tm_polygons(fill = variable,
+                fill.scale = tm_scale_intervals(values = palette, style = breaks_style),
+                fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
+                lwd = 0.1
+    )+
+    #tm_text("name",size = 1)
+    tm_title(top_title,size = 2)+
+    tm_layout(frame = FALSE)+
+    tm_credits(
+      paste0("10 Local Authorities with\nhighest ", title,":\n", 
+             region_sf$LAD22NM[1],": ", round(region_sf[[variable]][1],1), " \n",
+             region_sf$LAD22NM[2],": ", round(region_sf[[variable]][2],1), " \n",
+             region_sf$LAD22NM[3],": ", round(region_sf[[variable]][3],1), " \n",
+             region_sf$LAD22NM[4],": ", round(region_sf[[variable]][4],1), " \n",
+             region_sf$LAD22NM[5],": ", round(region_sf[[variable]][5],1), " \n",
+             region_sf$LAD22NM[6],": ", round(region_sf[[variable]][6],1), " \n",
+             region_sf$LAD22NM[7],": ", round(region_sf[[variable]][7],1), " \n",
+             region_sf$LAD22NM[8],": ", round(region_sf[[variable]][8],1), " \n",
+             region_sf$LAD22NM[9],": ", round(region_sf[[variable]][9],1), " \n",
+             region_sf$LAD22NM[10],": ", round(region_sf[[variable]][10],1), " \n"),
+      bg = TRUE, size = 0.7, bg.alpha = 0.3, bg.color = "grey95", position = c(0.9,0.6)
+    )
+  
+  
+  return(tm1)
+  
+}
+
+
+ranking_plot <- function(crashes,
+                         casualties,
+                         LA = "Bristol",
+                         severities = "KSI",
+                         casualty_types = "Cyclist",
+                       base_year,
+                       end_year,
+                       plot_dir = "plots/") {
+
+  if (!dir.exists(plot_dir)) dir.create(plot_dir, recursive = TRUE)
+  
+  # crashes = crashes_gb
+  # casualties = casualties_gb
+  # LA = "Bristol"
+  # severities = "KSI"
+  # casualty_types = "Pedestrian"
+  # severities = c("Serious", "Slight")
+  # base_year = 2010
+  # end_year = 2024
+  # pal = c("#ff7733", "#1de9b6", "#006853")
+  
+  param2get = tolower(paste0(severities, "_rank"))
+  
+  pal_sev <- data.frame(pal = c("#ff7733", "#1de9b6", "#006853", "red"),
+                        severity = c("Fatal", "Serious", "Slight","KSI"))
+  
+  ranking_df <- casualties_per_LA(casualties = casualties, crashes = crashes, casualty_types = casualty_types) |> 
+    filter(grepl(LA, LAD22NM)) |> 
+    st_set_geometry(NULL) |> 
+    select(year = collision_year, {{param2get}})
+  
+  if(NROW(param2get)>1){
+  chart_data <- reshape2::melt(ranking_df, "year") |> 
+    dplyr::mutate(variable = gsub("_rank", "", variable))
+  
+  pal <- pal_sev$pal[pal_sev$severity %in% severities]
+  } else {
+    chart_data <- ranking_df |> 
+      select(year, value = {{param2get}}) |> 
+      mutate(variable = gsub("_rank","", param2get))
+    
+    pal <- pal_sev$pal[pal_sev$severity %in% severities]
+  }
+  
+  cust_theme <- ggplot2::theme(panel.grid.major = ggplot2::element_line(size = 2))
+  dft_theme <- list(cust_theme, ggplot2::scale_color_manual(values = pal))
+  
+  p <- chart_data %>%
+    ggplot2::ggplot(ggplot2::aes(year, value, color = variable)) +
+    ggplot2::geom_line(size = 2, alpha = .8) +
+    dft_theme +
+    ggplot2::theme(panel.background = ggplot2::element_blank(),
+                   legend.position = "top",
+                   legend.title = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank()) +
+    ggplot2::scale_x_continuous(expand = c(0, 0),
+                                breaks = seq(base_year, end_year, by = 1),
+                                name = NULL) +
+    #scale_y_continuous(breaks = seq(0, max(value), by = 5))+
+    ggplot2::ggtitle(
+      paste0("Ranking ",casualty_types, " casualties for ",paste(severities,collapse = " "),  " compared to other LA, ",
+             LA, ": ", base_year, " - ", end_year)) +
+    ggplot2::ylab("ranking") +
+    ggplot2::labs(caption = "Source: Stats19")
+  
+  out_file <- file.path(plot_dir, paste0(LA, "_rank_", casualty_types,".png"))
+  ggplot2::ggsave(out_file, plot = p)
+  
+  invisible(chart_data)
+}
+
+
+# function to plot any super output area/local authority
+lsoa_home_plot <- function(casualty_df = NULL, vehicle_df = NULL, 
+                           variable,
+                           lsoa_geo,
+                           city_shp,
+                           bgd_map_buff = 0,
+                           bgd_map = FALSE, 
+                           palette = "tol.rainbow_wh_br",
+                           city_only = TRUE,
+                           base_year = 2020, 
+                           end_year = 2024,
+                           info_position = c(0,0.2)){
+
+  
+  if(!is.null(casualty_df)){
+    lsoa_all = lsoa_summaries(casualties = casualty_df,lsoa_geo = lsoa_geo,city_shp = city_shp,base_year = base_year, end_year = end_year)
+    legend_title = "casualties"
+    title = paste0("Home LSOA area for all casualties between ", base_year, " and ", end_year)
+    credit_title = "distance (km)   casualties"
+    total_persons <- NROW(casualty_df)
+    lsoa_missing <-  NROW(filter(casualty_df, lsoa_of_casualty == "-1"))
+  }
+  if(!is.null(vehicle_df)){
+    lsoa_all = lsoa_summaries(vehicles = vehicle_df,lsoa_geo = lsoa_geo,city_shp = city_shp,base_year = base_year, end_year = end_year)
+    legend_title = "drivers"
+    title = paste0("Home LSOA area for all drivers involved in collisions between ", base_year, " and ", end_year)
+    credit_title = "distance (km)   drivers"
+    total_persons <- NROW(vehicle_df)
+    lsoa_missing <-  NROW(filter(vehicle_df, lsoa_of_driver == "-1"))
+  }
+  
+  lsoa_city <- filter(lsoa_all, is.na(dist2city_km))
+  
+  lsoa_outside_city <- lsoa_all |>
+    filter(!is.na(dist2city_km)) |>
+    st_set_geometry(NULL) |>
+    group_by(distances) |>
+    summarise(persons = sum(persons))
+  
+  
+  
+  if(isTRUE(city_only)){
+    
+    lsoa_plot = lsoa_city
+    
+  } else {
+    lsoa_plot = lsoa_all
+  }
+  
+  tmap_mode("plot")
+  
+  if(isTRUE(bgd_map)){
+    
+    city_buff <- st_buffer(city_shp,bgd_map_buff)
+    
+    bm_ps <- basemaps::basemap_raster(ext = city_buff,map_service = "carto", map_type = "light")
+    
+    tm1 <- tm_shape(bm_ps)+
+      tm_rgb()
+    
+    alp = 0.7
+    
+  } else {
+    tm1 = NULL
+  alp = 1}
+  
+  
+  tm1 <- tm1+
+    tm_shape(lsoa_plot) +
+    tm_polygons(fill = "persons",fill_alpha = alp,
+                fill.scale = tm_scale_intervals(values = palette),
+                fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
+                lwd = 0.1)+
+    tm_credits(
+      paste0("Distance of home LSOA\nfrom border of area:\n",
+             credit_title, "\n",
+             lsoa_outside_city$distances[1],":       ", lsoa_outside_city$persons[1],"\n",
+             lsoa_outside_city$distances[2],":       ", lsoa_outside_city$persons[2],"\n",
+             lsoa_outside_city$distances[3],":       ", lsoa_outside_city$persons[3],"\n",
+             lsoa_outside_city$distances[4],":       ", lsoa_outside_city$persons[4],"\n",
+             lsoa_outside_city$distances[5],":       ", lsoa_outside_city$persons[5],"\n",
+             "total (inc area):      ", total_persons,"\n",
+             "no data:    ",  lsoa_missing),
+      position = info_position)+
+    tm_title(title,size = 2)+
+    tm_layout(frame = FALSE)
+  
+  return(tm1)
+}
+
+
+# function to plot any super output area/local authority
+lsoa_crashes_plot <- function(crashes_df, 
+                              lsoa_geo,
+                              city_shp,
+                           palette = "tol.rainbow_wh_br",
+                           base_year = 2020, 
+                           end_year = 2024,
+                           info_position = c(0,0.2)){
+  
+
+    lsoa_all = lsoa_summaries(collisions = crashes_df,lsoa_geo = lsoa_geo,city_shp = city_shp,base_year = base_year, end_year = end_year)
+    legend_title = "crashes"
+    title = paste0("collisions by LSOA area between ", base_year, " and ", end_year)
+    
+    tm1 <- tm_shape(lsoa_all) +
+      tm_polygons(fill = "crashes",fill_alpha = 1,
+                  fill.scale = tm_scale_intervals(values = palette),
+                  fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
+                  lwd = 0.1)+
+      tm_title(title,size = 2)+
+      tm_layout(frame = FALSE)
+    
+    return(tm1)
+    
+}
   

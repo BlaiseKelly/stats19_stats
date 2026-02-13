@@ -420,7 +420,7 @@ casualty_osm_link <- function(osm_links,
                               year_from,
                               year_to,
                               sum_by_crash = FALSE,
-                              casualties_buffer){
+                              casualties_buffer = 10){
   
   # simplify casualty type
   casualties_type_sum <- summarise_casualty_types(casualties) |> 
@@ -452,7 +452,7 @@ vehicle_osm_link <- function(osm_links,
                              year_from,
                              year_to,
                              sum_by_crash = FALSE,
-                             casualties_buffer){
+                             casualties_buffer = 10){
   
   # simplify casualty type
   vehicle_type_sum <- vehicle_groups_simplify(vehicles) 
@@ -612,9 +612,14 @@ assign_h3 <- function(city_sf,
   crashes
 }
 
-osm_link_summary = function(osm_data, crash_sf, match_with = "severity", by_year = TRUE){
+osm_link_summary = function(osm_data, crash_sf, casualties, match_with = "severity", by_year = TRUE){
   
-  cas_osm = roads_cra_match(osm_network_sf = osm_data, crash_sf = crashes) |> 
+  osm_data = osm_data
+  crash_sf = crashes
+  match_with = "severity"
+  by_year = TRUE
+  
+  cas_osm = roads_cra_match(osm_network_sf = osm_data, crash_sf = crash_sf) |> 
     select(collision_index,osm_id) |> 
     st_set_geometry(NULL) |> 
     left_join(casualties_sr, by = "collision_index")
@@ -663,7 +668,10 @@ osm_link_summary = function(osm_data, crash_sf, match_with = "severity", by_year
 # summarise the 
 costs_col_per_LA <- function(crashes_sf, collision_severity = c("Fatal", "Serious", "Slight")){
   
-  crashes_tag_simple <- match_tag(crashes,match_with = "severity")
+  # crashes_sf <- crashes_gb
+  # collision_severity = c("Fatal", "Serious", "Slight")
+  
+  crashes_tag_simple <- match_tag(crashes_sf,match_with = "severity")
   
   # import LA regions and remove Northern Ireland as there is no data for there
   cl <- st_read("https://open-geography-portalx-ons.hub.arcgis.com/api/download/v1/items/995533eee7e44848bf4e663498634849/geoPackage?layers=0") |> 
@@ -673,7 +681,7 @@ costs_col_per_LA <- function(crashes_sf, collision_severity = c("Fatal", "Seriou
   cts_city <- crashes_tag_simple |> 
     #format_sf() |> 
     st_join(cl) |> 
-    filter(collision_severity %in% severities) |> 
+    filter(collision_severity %in% collision_severity) |> 
     group_by(LAD22NM,collision_year) |> 
     summarise(collisions = n(),
               casualties = sum(as.numeric(number_of_casualties)),
@@ -694,23 +702,42 @@ costs_col_per_LA <- function(crashes_sf, collision_severity = c("Fatal", "Seriou
   # define geometry
   st_geometry(cts_city_sf) <- cts_city_sf$SHAPE
   
+  return(cts_city_sf)
+  
+}
+
+st_read_trycatch <- function(url, wait = 5) {
+  i <- 1
+  repeat {
+    out <- tryCatch(st_read(url), error = function(e) NULL)
+    if (!is.null(out)) {
+      message("Success after ", i, " attempts")
+      return(out)
+    }
+    message("Attempt ", i, " failed — waiting...")
+    i <- i + 1
+    Sys.sleep(wait)
+  }
 }
 
 # summarise the 
-casualties_per_LA <- function(casualties,crashes, casualty_types = c("Cyclist"), casualty_sexes = c("Male", "Female")){
+casualties_per_LA <- function(casualties,crashes, casualty_types = "All", casualty_sexes = c("Male", "Female")){
   
-  casualty_types <- c("Cyclist")
-  casualty_sexes <- c("Male", "Female")
   
-  # import LA regions and remove Northern Ireland as there is no data for there
-  cl <- st_read("https://open-geography-portalx-ons.hub.arcgis.com/api/download/v1/items/995533eee7e44848bf4e663498634849/geoPackage?layers=0") |> 
-    filter(!grepl("N", LAD22CD))
+  
+  cl <- st_read_trycatch("https://open-geography-portalx-ons.hub.arcgis.com/api/download/v1/items/995533eee7e44848bf4e663498634849/geoPackage?layers=0") |> 
+  filter(!grepl("N", LAD22CD))
+  
+
+  if(!casualty_types == "All"){
+    casualties <- filter(casualties, casualty_type %in% casualty_types)
+  }
   
   # summarise by region
   cts_city <- crashes |> 
     st_join(cl) |> 
     inner_join(casualties) |> 
-    filter(casualty_type %in% casualty_types & sex_of_casualty %in% casualty_sexes) |> 
+    filter(sex_of_casualty %in% casualty_sexes) |> 
     mutate(fatal_count = if_else(casualty_severity == "Fatal", 1, 0)) |> 
     st_set_geometry(NULL) |> 
     group_by(LAD22NM, collision_year) |> 
@@ -718,23 +745,90 @@ casualties_per_LA <- function(casualties,crashes, casualty_types = c("Cyclist"),
               fatal_cas = sum(fatal_count),
               serious_cas = sum(casualty_adjusted_severity_serious),
               slight_cas = sum(casualty_adjusted_severity_slight)) |>
+    mutate(ksi_cas = fatal_cas+serious_cas) |> 
     mutate(total_cas = fatal_cas+serious_cas+slight_cas) |> 
     ungroup() |> 
     group_by(collision_year) |> 
     mutate(fatal_rank = rank(-fatal_cas),
            serious_rank = rank(-serious_cas),
            slight_rank = rank(-slight_cas),
+           ksi_rank = rank(-ksi_cas),
            total_rank = rank(-total_cas))
   
   # join to shape file
   cts_city_sf <- cts_city |> 
-    st_set_geometry(NULL) |> 
+    #st_set_geometry(NULL) |> 
     left_join(cl, by = "LAD22NM")
   
   # define geometry
   st_geometry(cts_city_sf) <- cts_city_sf$SHAPE
   
+  return(cts_city_sf)
+  
 }
+
+
 
 #function to calculate the gradient of all the roads and group casualties by gradient
 gradient_of_roads <- function(){NULL}
+
+lsoa_summaries <- function(casualties = NULL, vehicles = NULL, collisions = NULL, lsoa_geo,
+                           city_shp, base_year,end_year){
+  
+  if(!is.null(casualties)){
+    groups_lsoa <- match_2021_lsoa(casualties = casualties) 
+  }
+  if(!is.null(vehicles)){
+    groups_lsoa <- match_2021_lsoa(vehicles = vehicles) 
+  }
+  if(!is.null(collisions)){
+    
+    groups_lsoa <- crashes |> 
+      st_transform(4326) |> 
+      st_join(lsoa_geo) |> 
+      st_set_geometry(NULL) |> 
+      group_by(lsoa21_name) |> 
+      summarise(crashes = n(),
+                casualties = sum(as.numeric(number_of_casualties)),
+                vehicles = sum(as.numeric(number_of_vehicles))) |> 
+      left_join(lsoa_geo, by = "lsoa21_name")
+    
+    st_geometry(groups_lsoa) <- groups_lsoa$geometry
+    
+    return(groups_lsoa)
+    
+  } else {
+  
+
+  lsoa21_cent <- st_centroid(lsoa_geo) |> 
+  st_transform(27700)
+
+  lsoa21_city = lsoa21_cent[city_shp,]
+
+  lsoa21_outside <- lsoa21_cent |> 
+    filter(!lsoa21_code %in% lsoa21_city$lsoa21_code) |> 
+    filter(lsoa21_name %in% groups_lsoa$lsoa21_name)
+
+  lsoa21_outside$dist2city_km <- as.numeric(st_distance(city_shp, lsoa21_outside)[1,])/1000
+
+  lsoa21_outside$distances <- cut(lsoa21_outside$dist2city_km, c(0,5,10,20,40,80,1000), c("0 - 5", "6 - 10","11 - 20", "20 - 40", "40 - 80", "81+"))
+
+  st_geometry(lsoa21_outside) <- NULL
+  
+    groups_lsoa <- groups_lsoa |>  
+      group_by(lsoa21_name) |> 
+      summarise(persons = n()) |> 
+      filter(!is.na(lsoa21_name)) |> 
+      left_join(lsoa_geo, by = "lsoa21_name") |> 
+      left_join(lsoa21_outside, by = "lsoa21_name")
+  
+  st_geometry(groups_lsoa) <- groups_lsoa$geometry
+  
+  return(groups_lsoa)
+  
+  }
+  
+}
+
+
+

@@ -109,3 +109,42 @@ match_2021_lsoa <- function(casualties = NULL,
   
   df_lsoa
 }
+
+# with the package a 1km population raster for GB is included from landscan https://www.nature.com/articles/s41597-025-04817-z
+get_population <- function(){
+  
+  
+  
+}
+
+get_lsoa21_geo <- function(provider = "geographr", lsoa_code, lsoa_name){
+  
+  if(provider == "geographr"){
+    lsoa_geo = geographr::boundaries_lsoa21 |> 
+      select(lsoa21_code,lsoa21_name,geometry)
+  } else {
+    # download LSOA gpkg from https://communitiesopendata-communities.hub.arcgis.com/datasets/4da63019f25546aa92a922a5ea682950_0/explore?location=52.533125%2C-2.489482%2C7.17
+    lsoa_geo = st_read(provider) |> 
+      select(lsoa21_code = {{lsoa_code}},lsoa21_name = {{lsoa_name}},geometry = SHAPE)
+  }
+  
+  return(lsoa_geo)
+  
+}
+
+get_lsoa_pop = function(lsoa_codes){
+  
+  sr_pop = nomisr::nomis_search(name = "*TS001*")
+  
+  # Download TS017 data for all LSOAs in England & Wales
+  population <- nomisr::nomis_get_data(
+    id = sr_pop$id,  # TS001 dataset
+    geography = lsoa_codes,  # LSOA geography code
+    measures = 20100  # Observation measure 20100 is value 20301 is percentage
+  ) |> 
+    dplyr::filter(C2021_RESTYPE_3_NAME == "Total: All usual residents") |> 
+    dplyr::select(lsoa21_code = GEOGRAPHY_CODE, population = OBS_VALUE)
+  
+  return(population)
+  
+}

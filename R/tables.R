@@ -1,8 +1,12 @@
 
-tag_table <- function(crashes, city, agg_level, tab_dir = "tables/"){
-  tab_dir = "tables/"
-  dir.create(tab_dir)
+tag_table <- function(crashes, city, agg_level, tab_dir = "tables/", file_type = ".png"){
 
+  
+  crash_geo = inherits(crashes,"sf")
+  if(crash_geo){
+    st_geometry(crashes) = NULL
+  }
+  
   cwc <- tag_costs(crashes,agg_level)
   
   if(agg_level == "severity"){
@@ -55,7 +59,7 @@ t1 <- gt(cwc_tot,auto_align = TRUE) |>
     locations = cells_body(columns = everything())
   )
 
-gtsave(t1, paste0(tab_dir, "/", city,"_costs.png"))
+gtsave(t1, paste0(tab_dir, "/", city,"_costs", file_type))
 
 return(t1)
 
@@ -110,7 +114,7 @@ return(t1)
         locations = cells_body(columns = everything())
       )
     
-    gtsave(t1, paste0(tab_dir, "/", city,"_costs.png"))
+    gtsave(t1, paste0(tab_dir, "/", city,"_costs", file_type))
     
     return(t1)
     
@@ -133,7 +137,7 @@ costs_col_ranking_table <- function(crashes, severities = c("Fatal", "Serious", 
     cols_label(LAD22NM = md("**Local Authority**"),
                total_collisions = md("**Total collisions**"),
                total_casualties = md("**Total casualties**"),
-               total_cost = md("**Total cost (£mn)**"),-
+               total_cost = md("**Total cost (£mn)**"),
                annual_coll_rank = md("**Collision ranking**"),
                annual_cas_rank = md("**Casualty ranking**"),
                annual_cost_rank = md("**Cost ranking**")) |>

@@ -490,9 +490,12 @@ vehicle_groups <- data.frame(vehicle_type = c("Car","Motorcycle 125cc and under"
                                               "Data missing or out of range","Ridden horse"),
                              summary_type =  c("Car","Motorcycle","Taxi","Motorcycle", "Motorcycle","Goods vehicle","Goods vehicle","Bus",
                                                "Goods vehicle","Motorcycle","Other vehicle","Pedal cycle","Motorcycle","Motorcycle","e-scooter","Bus",     
-                                               "Mobility scooter","Other vehicle","Agricultural vehicle","Goods vehicle","Data missing or out of range","Ridden horse"))
+                                               "Mobility scooter","Other vehicle","Agricultural vehicle","Goods vehicle","Data missing or out of range","Ridden horse"),
+                             driver_type =  c("Car driver","Motorcycle driver","Taxi driver","Motorcycle driver", "Motorcycle driver","Goods vehicle driver","Goods vehicle driver","Bus driver",
+                                               "Goods vehicle driver","Motorcycle driver","Other vehicle","Cyclist","Motorcycle driver","Motorcycle driver","e-scooter driver","Bus driver",     
+                                               "Mobility scooter driver","Other vehicle","Agricultural vehicle driver","Goods vehicle driver","Data missing or out of range","Horse rider"))
 
-vehicle_groups_simplify <- function(vehicles, summarise_categories = TRUE){
+vehicle_groups_simplify <- function(vehicles, summary_type = c("short_name", "driver_type")){
   
   veh_new_types <- vehicles |>
     left_join(vehicle_groups, by = "vehicle_type") |> 

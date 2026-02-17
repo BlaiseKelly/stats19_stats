@@ -4,9 +4,6 @@ project:
   render:
     - index.qmd
     - about.qmd
-    - Rmd/ca_factsheet_cyclist.qmd
-    - Rmd/dft_pedestrian_factsheet.qmd
-    - Rmd/ca_factsheet_pedestrian.qmd
 
 
 website:
@@ -15,12 +12,14 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: Rmd/dft_pedestrian_factsheet.qmd
-        text: DfT Pedestrian factsheet
-      - href: Rmd/ca_factsheet_pedestrian.qmd
-        text: WECA Cyclist factsheet
-      - href: Rmd/ca_factsheet_cyclist.qmd
-        text: WECA Pedestrian factsheet
+      - href: maps/cas_location.html
+        text: Casualty location Bristol
+      - href: maps/cas_veh_lsoa.html
+        text: Home LSOA Bristol
+      - href: tables/cas_col_per_km.html
+        text: Cas col by road Bristol
+      - href: tables/cas_col_per_km.html
+        text: cost breakdown Bristol
       - about.qmd
 
 format:

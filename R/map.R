@@ -127,6 +127,9 @@ map_casualties_interactive2 = function(crashes,casualties, extent_geo = city_shp
                                        colour_by = c("Day","Month","Year", "Hour", "Sex of casualty",
                                                      "Age group","Casualty IMD", "Speed limit")){
   
+  colour_by = c
+  extent_geo = city_shp
+  
   cas_sum = summarise_casualty_types(casualties,summary_type = "short_name")
   
   cra_cas = inner_join(crashes, cas_sum) |> 
@@ -157,22 +160,30 @@ map_casualties_interactive2 = function(crashes,casualties, extent_geo = city_shp
     cra_cas$Hour = sprintf("%02d", lubridate::hour(cra_cas$`Date and time`))
   }
   
-  tm1 <- tm_shape(extent_geo) +
-    tm_polygons(fill_alpha = 0,
-                group = "LSOA", 
-                group.control = "hide")
-  
   casualty_types <- sort(unique(cra_cas$`Casualty type`))
   
   all_colour_levels <- sort(unique(cra_cas[[colour_by]]))
   
-  tm1 <- purrr::reduce(casualty_types, function(map_obj, ct) {
+  tm1 = tm_shape(extent_geo) +
+    tm_polygons(fill_alpha = 0,
+                group = "LSOA", 
+                group.control = "hide")
+
+  #tm1 <- purrr::reduce(casualty_types, function(map_obj, ct) {
+    
+    for (ct in casualty_types){
     
     cas_df <- dplyr::filter(cra_cas, `Casualty type` == ct)
     
     if(NROW(cas_df) > 1) {
-      map_obj <- map_obj +
-        tm_shape(cas_df) +  # cas_df is captured in this iteration's closure
+      
+     if(length(unique(cas_df$sev_plot_size))==1){
+      
+      cas_df$sev_plot_size <- cas_df$sev_plot_size + runif(nrow(cas_df), 0, 0.001)
+     }
+      
+      #map_obj <- map_obj
+       tm1 = tm1 + tm_shape(cas_df) +  # cas_df is captured in this iteration's closure
         tm_bubbles(
           fill = colour_by,
           fill.scale = tm_scale_categorical(
@@ -191,11 +202,14 @@ map_casualties_interactive2 = function(crashes,casualties, extent_geo = city_shp
           group = ct,
           group.control = "radio") +
         tm_basemap("CartoDB.DarkMatter", group.control = "none")
+      
     }
     
-  }, .init = tm1)
+    }
+    
+ # }, .init = tm1)
   
-  tm1 <- tm1+
+  tm1 = tm1+
     tm_title(paste0("Casualty location disagregated by casualty type, sized by severity and coloured by ",colour_by))+
     tm_view(control.collapse = FALSE)
   
@@ -863,8 +877,8 @@ map_osm_street_casualties <- function(osm_links,
   cra_cas_osm <- summarise_casualty_osm_link(osm_links, casualties, crashes,
                                    year_from, year_to,
                                    casualties_buffer = casualties_buffer) |> 
-    mutate(sev_plot_size = if_else(Fatal == 1, 1.5, Serious))
-  
+    mutate(sev_plot_size = if_else(Fatal == 1, 1.5, Serious)) |> 
+    mutate(sev_plot_size = ifelse(Slight < 0.1,0.1,Slight))
   
   # if no legend position has been defined, calculate angle of osm link to determine where the legend should go
   angle <- stplanr::line_bearing(osm_links)
@@ -967,7 +981,7 @@ map_osm_street_vehicles <- function(osm_links,
                                     plot_dpi = 1000,
                                     plot_dir) {
   
-  
+
   cra_veh_osm <- summarise_vehicle_osm_link(osm_links = osm_links, 
                                   vehicles = vehicles, 
                                   crashes = crashes, 

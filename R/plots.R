@@ -98,15 +98,17 @@ plot_casualty_demographics <- function(casualties,
   if (!dir.exists(plot_dir)) dir.create(plot_dir, recursive = TRUE)
   
   demo_sum <- if (severity == "ksi") {
-    group_demo(casualties, demographic = "both", severities = c("Fatal", "Serious"))
+    #group_demo(casualties, demographic = "both", severities = c("Fatal", "Serious"))
+    summarise_casualties_by_demog(casualties,severities = c("Fatal", "Serious"))
   } else {
-    group_demo(casualties, demographic = "both", severities = c("Fatal", "Serious", "Slight"))
+    #group_demo(casualties, demographic = "both", severities = c("Fatal", "Serious", "Slight"))
+    summarise_casualties_by_demog(casualties,severities = c("Fatal", "Serious", "Slight"))
   }
   
   cust_theme <- ggplot2::theme(panel.grid.major = ggplot2::element_line(size = 2))
   dft_theme <- list(cust_theme, ggplot2::scale_fill_manual(values = pal))
   
-  if (stat == "ksi") {
+  if (severity == "ksi") {
     p <- ggplot2::ggplot(demo_sum, ggplot2::aes(x = age_band, y = pc_ksi, fill = sex_of_casualty)) +
       ggplot2::geom_bar(stat = "identity", position = ggplot2::position_dodge(width = 0.7), width = 0.7) +
       ggplot2::geom_text(
@@ -138,7 +140,7 @@ plot_casualty_demographics <- function(casualties,
       ggplot2::labs(caption = "Source: Stats19")
   }
   
-  out_file <- file.path(plot_dir, paste0("plots/demographics.png"))
+  out_file <- file.path(plot_dir, paste0("plots/demog/demographics.png"))
   ggplot2::ggsave(out_file, plot = p)
   
   invisible(demo_sum)

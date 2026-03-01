@@ -1,5 +1,30 @@
 
-tag_table <- function(crashes, city, agg_level, tab_dir = "tables/", file_type = ".png"){
+#' Create a gt table of TAG collision costs
+#'
+#' Computes TAG collision and casualty costs from crash data, formats values
+#' with thousand separators, and produces a styled \code{gt} table. The table
+#' is saved to disk as a PNG (or other format) and returned as a \code{gt}
+#' object.
+#'
+#' @param crashes An \code{sf} or regular data frame of crash records with
+#'   \code{collision_year} and \code{collision_severity} columns.
+#' @param city Character. City name used in the table title and filename.
+#' @param agg_level Character. One of \code{"severity"} (costs by severity)
+#'   or \code{"severity_road"} (costs by severity and road type).
+#' @param tab_dir Character. Directory where the output file will be saved.
+#'   Default \code{"tables/"}.
+#' @param file_type Character. File extension for the saved table (e.g.
+#'   \code{".png"}, \code{".html"}). Default \code{".png"}.
+#' @return A \code{gt} table object.
+#' @examples
+#' \dontrun{
+#' t1 <- tabulate_summarise_tag_costs(crashes, city = "Bristol",
+#'                          agg_level = "severity")
+#' t1 <- tabulate_summarise_tag_costs(crashes, city = "Bristol",
+#'                          agg_level = "severity_road")
+#' }
+#' @export
+tabulate_summarise_tag_costs <- function(crashes, city, agg_level, tab_dir = "tables/", file_type = ".png"){
 
   
   crash_geo = inherits(crashes,"sf")
@@ -7,7 +32,7 @@ tag_table <- function(crashes, city, agg_level, tab_dir = "tables/", file_type =
     st_geometry(crashes) = NULL
   }
   
-  cwc <- tag_costs(crashes,agg_level)
+  cwc <- summarise_tag_costs(crashes,agg_level)
   
   if(agg_level == "severity"){
   
@@ -123,7 +148,27 @@ return(t1)
  
 }
 
-costs_col_ranking_table <- function(crashes, severities = c("Fatal", "Serious", "Slight"), sort_by = c("casualties", "cost", "collisions"), table_year = 2024, rows = 10){
+#' Create a gt table of Local Authority cost rankings
+#'
+#' Computes collision costs per Local Authority, sorts by the chosen metric,
+#' and produces a styled \code{gt} table of the top \code{n} LAs. The table
+#' is saved to disk.
+#'
+#' @param crashes An \code{sf} data frame of crash records.
+#' @param severities Character vector of severity levels to include. Default
+#'   \code{c("Fatal", "Serious", "Slight")}.
+#' @param sort_by Character. Column to sort LAs by. One of
+#'   \code{"casualties"}, \code{"cost"}, or \code{"collisions"}.
+#' @param table_year Integer. Year to filter to. Default \code{2024}.
+#' @param rows Integer. Number of rows (top LAs) to show. Default \code{10}.
+#' @return A \code{gt} table object.
+#' @examples
+#' \dontrun{
+#' t1 <- tabulate_la_cost_ranking(crashes, sort_by = "cost",
+#'                                table_year = 2024, rows = 10)
+#' }
+#' @export
+tabulate_la_cost_ranking <- function(crashes, severities = c("Fatal", "Serious", "Slight"), sort_by = c("casualties", "cost", "collisions"), table_year = 2024, rows = 10){
   
   LA_sum <- costs_cas_col_per_LA(crashes,severities) |> 
     st_set_geometry(NULL) |> 

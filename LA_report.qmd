@@ -1,0 +1,641 @@
+---
+title: "Reported road casualties: STATS19 factsheet"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+library(sf)
+library(dplyr)
+library(reshape2)
+library(stringr)
+library(ggplot2)
+library(gt)
+library(formattable)
+library(data.table)
+library(htmltools)
+library(reactable)
+
+la_name = "Leeds"
+
+la_dir = paste0("outputs/", la_name)
+
+load(paste0(la_dir,"/data/LA_report_dat.Rdata"))
+
+plot_path = paste0(la_dir, "plots/lsoa_all.png")
+
+```
+# Introduction
+This is a report for the Local Authority (LA) region of `r la_name`, which can be reproduced for any LA by cloning the repository at https://github.com/blaisekelly/stats19_stats.
+
+The LA boundary is shown on this plot of the cycle network (from OSM data processed with the osmactive package).
+```{r}
+#| echo: false
+#| fig.height: 5 
+#knitr::include_graphics(paste0(la_dir, "/plots/la_cycle_paths.png"))
+```
+
+In this report all serious and slight casualty data is based on the adjusted data.
+
+In `r upper_year`, `r la_name` had `r LA_LY$collisions` collisions involving all casualty types resulting in `r round(LA_LY$total_cas)` casualties reported to the police. This is the `r scales::ordinal(LA_LY$total_rank)` highest of `r NROW(LAs)` Local Authorities in Great Britain (`r scales::ordinal(LA_LY$total_pcap_rank)` per capita) and `r ifelse(LA_LY$collisions > LA_YBLY$collisions, "an increase", "a decrease")` in collisions of `r abs(LA_LY$collisions - LA_YBLY$collisions)` `r ifelse(LA_LY$total_cas > LA_YBLY$total_cas, "and an increase", "but a decrease")` in total casualties of `r round(abs(LA_LY$total_cas-LA_YBLY$total_cas))`. For fatal it ranked `r scales::ordinal(LA_LY$fatal_rank)` ( `r scales::ordinal(LA_LY$fatal_pcap_rank)` per capita) with `r round(LA_LY$fatal_cas)` casualties `r ifelse(LA_LY$fatal_cas > LA_YBLY$fatal_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For KSIs it ranked `r scales::ordinal(LA_LY$ksi_rank)` (`r scales::ordinal(LA_LY$ksi_pcap_rank)` per capita) with `r round(LA_LY$ksi_cas)` casualties `r ifelse(LA_LY$ksi_cas > LA_YBLY$ksi_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For serious injuries it ranked `r scales::ordinal(LA_LY$serious_rank)` (`r scales::ordinal(LA_LY$serious_pcap_rank)` per 1000) with `r round(LA_LY$serious_cas)` casualties `r ifelse(LA_LY$serious_cas > LA_YBLY$serious_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For slight injuries it ranked `r scales::ordinal(LA_LY$slight_rank)` (`r scales::ordinal(LA_LY$slight_pcap_rank)` per 1000) with `r round(LA_LY$slight_cas)` casualties `r ifelse(LA_LY$slight_cas > LA_YBLY$slight_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`.
+
+```{r}
+#| echo: false
+#| layout-ncol: 3
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_All_fatal_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_All_ksi_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_All_total_cas_LY.png"))
+```
+
+Compared to 5 years ago collisions are `r ifelse(LA_LY$collisions > LA_5Y$collisions, paste0("up by ",LA_LY$collisions-LA_5Y$collisions), paste0("down by ",LA_5Y$collisions-LA_LY$collisions))`, total casualties `r ifelse(LA_LY$total_cas > LA_5Y$total_cas, paste0("up by ",LA_LY$total_cas-LA_5Y$total_cas), paste0("down by ",round(LA_5Y$total_cas-LA_LY$total_cas)))`, fatalities `r ifelse(LA_LY$fatal_cas > LA_5Y$fatal_cas, paste0("up by ",LA_LY$fatal_cas-LA_5Y$fatal_cas), paste0("down by ",round(LA_5Y$fatal_cas-LA_LY$fatal_cas)))`, KSI casualties `r ifelse(LA_LY$ksi_cas > LA_5Y$ksi_cas, paste0("up by ",round(LA_LY$ksi_cas-LA_5Y$ksi_cas)), paste0("down by ",round(LA_5Y$ksi_cas-LA_LY$ksi_cas)))`, serious injuries `r ifelse(LA_LY$serious_cas > LA_5Y$serious_cas, paste0("up by ",round(LA_LY$serious_cas-LA_5Y$serious_cas)), paste0("down by ",round(LA_5Y$serious_cas-LA_LY$serious_cas)))` and slight injuries `r ifelse(LA_LY$slight_cas > LA_5Y$slight_cas, paste0("up by ",round(LA_LY$slight_cas-LA_5Y$slight_cas)), paste0("down by ",round(LA_5Y$slight_cas-LA_LY$slight_cas)))`.  
+
+```{r }
+#| echo: false
+knitr::include_graphics(paste0(la_dir, "/plots/national/rank_All.png"))
+
+```
+
+For cyclists there were `r LA_LY_CYC$collisions` collisions resulting in `r round(LA_LY_CYC$total_cas)` cyclist casualties reported to the police. This is the `r scales::ordinal(LA_LY_CYC$total_rank)` highest of `r NROW(LAs)` Local Authorities in Great Britain (`r scales::ordinal(LA_LY_CYC$total_pcap_rank)` per capita) and `r ifelse(LA_LY_CYC$collisions > LA_YBLY_CYC$collisions, "an increase", "a decrease")` in collisions of `r round(abs(LA_LY_CYC$collisions - LA_YBLY_CYC$collisions))` `r ifelse(LA_LY_CYC$total_cas > LA_YBLY_CYC$total_cas, "and an increase", "but a decrease")` in total casualties. For fatal it ranked `r scales::ordinal(LA_LY_CYC$fatal_rank)` (`r scales::ordinal(LA_LY_CYC$fatal_pcap_rank)` per capita) with `r round(LA_LY_CYC$fatal_cas)` cyclist casualties `r ifelse(LA_LY_CYC$fatal_cas > LA_YBLY_CYC$fatal_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For KSIs it ranked `r scales::ordinal(LA_LY_CYC$ksi_rank)` ( `r scales::ordinal(LA_LY_CYC$ksi_pcap_rank)` per capita) with `r round(LA_LY_CYC$ksi_cas)` casualties `r ifelse(LA_LY_CYC$ksi_cas > LA_YBLY_CYC$ksi_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For serious injuries it ranked `r scales::ordinal(LA_LY_CYC$serious_rank)` (`r scales::ordinal(LA_LY_CYC$serious_pcap_rank)` per 1000) with `r round(LA_LY_CYC$serious_cas)` cyclist casualties `r ifelse(LA_LY_CYC$serious_cas > LA_YBLY_CYC$serious_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For slight injuries it ranked `r scales::ordinal(LA_LY_CYC$slight_rank)` (`r scales::ordinal(LA_LY_CYC$slight_pcap_rank)` per 1000) with `r round(LA_LY_CYC$slight_cas)` cyclist casualties `r ifelse(LA_LY_CYC$slight_cas > LA_YBLY_CYC$slight_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`.
+```{r echo=FALSE}
+#| echo: false
+#| layout-ncol: 3
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Cyclist_fatal_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Cyclist_ksi_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Cyclist_total_cas_LY.png"))
+```
+
+
+Compared to 5 years ago collisions involving cyclists are `r ifelse(LA_LY_CYC$collisions > LA_5Y_CYC$collisions, paste0("up by ",round(LA_LY_CYC$collisions-LA_5Y_CYC$collisions)), paste0("down by ",LA_5Y_CYC$collisions-LA_LY_CYC$collisions))`, total casualties `r ifelse(LA_LY_CYC$total_cas > LA_5Y_CYC$total_cas, paste0("up by ",LA_LY_CYC$total_cas-LA_5Y_CYC$total_cas), paste0("down by ",round(LA_5Y_CYC$total_cas-LA_LY_CYC$total_cas)))`, fatalities `r ifelse(LA_LY_CYC$fatal_cas > LA_5Y_CYC$fatal_cas, paste0("up by ",round(LA_LY_CYC$fatal_cas-LA_5Y_CYC$fatal_cas)), paste0("down by ",round(LA_5Y_CYC$fatal_cas-LA_LY_CYC$fatal_cas)))`, KSI casualties `r ifelse(LA_LY_CYC$ksi_cas > LA_5Y_CYC$ksi_cas, paste0("up by ",round(LA_LY_CYC$ksi_cas-LA_5Y_CYC$ksi_cas)), paste0("down by ",round(LA_5Y_CYC$ksi_cas-LA_LY_CYC$ksi_cas)))`, serious injuries `r ifelse(LA_LY_CYC$serious_cas > LA_5Y_CYC$serious_cas, paste0("up by ",round(LA_LY_CYC$serious_cas-LA_5Y_CYC$serious_cas)), paste0("down by ",round(LA_5Y_CYC$serious_cas-LA_LY_CYC$serious_cas)))` and slight injuries `r ifelse(LA_LY_CYC$slight_cas > LA_5Y_CYC$slight_cas, paste0("up by ",round(LA_LY_CYC$slight_cas-LA_5Y_CYC$slight_cas)), paste0("down by ",round(LA_5Y_CYC$slight_cas-LA_LY_CYC$slight_cas)))`.  
+```{r }
+#| echo: false
+knitr::include_graphics(paste0(la_dir, "/plots/national/rank_Cyclist.png"))
+
+```
+
+For pedestrians there were `r LA_LY_PED$collisions` collisions resulting in `r LA_LY_PED$total_cas` pedestrian casualties reported to the police. This is the `r scales::ordinal(LA_LY_PED$total_rank)` highest of `r NROW(LAs)` Local Authorities in Great Britain (`r scales::ordinal(LA_LY_PED$total_pcap_rank)` per capita) and `r ifelse(LA_LY_PED$collisions > LA_YBLY_PED$collisions, "an increase", "a decrease")` in collisions of `r abs(LA_LY_PED$collisions - LA_YBLY_PED$collisions)` `r ifelse(LA_LY_PED$total_cas > LA_YBLY_PED$total_cas, "and an increase", "and a decrease")` in total casualties. For fatal it ranked `r scales::ordinal(LA_LY_PED$fatal_rank)` (`r scales::ordinal(LA_LY_PED$fatal_pcap_rank)` per capita) with `r round(LA_LY_PED$fatal_cas)` pedestrian casualties `r ifelse(LA_LY_PED$fatal_cas > LA_YBLY_PED$fatal_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For KSIs it ranked `r scales::ordinal(LA_LY_PED$ksi_rank)` (`r scales::ordinal(LA_LY_PED$ksi_pcap_rank)` per capita) with `r round(LA_LY_PED$ksi_cas)` casualties `r ifelse(LA_LY_PED$ksi_cas > LA_YBLY_PED$ksi_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For serious injuries it ranked `r scales::ordinal(LA_LY_PED$serious_rank)` (`r scales::ordinal(LA_LY_PED$serious_pcap_rank)` per capita) with `r round(LA_LY_PED$serious_cas)` pedestrian casualties `r ifelse(LA_LY_PED$serious_cas > LA_YBLY_PED$serious_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`. For slight injuries it ranked `r scales::ordinal(LA_LY_PED$slight_rank)` (`r scales::ordinal(LA_LY_PED$slight_pcap_rank)` per capita) with `r round(LA_LY_PED$slight_cas)` pedestrian casualties `r ifelse(LA_LY_PED$slight_cas > LA_YBLY_PED$slight_cas, paste0("up on ",YBLY), paste0("down on ",YBLY))`.
+```{r echo=FALSE}
+#| echo: false
+#| layout-ncol: 3
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Pedestrian_fatal_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Pedestrian_ksi_cas_LY.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/national/la_casualties_Pedestrian_total_cas_LY.png"))
+```
+
+Compared to 5 years ago collisions involving pedestrians are `r ifelse(LA_LY_PED$collisions > LA_5Y_PED$collisions, paste0("up by ",round(LA_LY_PED$collisions-LA_5Y_PED$collisions)), paste0("down by ",LA_5Y_PED$collisions-LA_LY_PED$collisions))`, total casualties `r ifelse(LA_LY_PED$total_cas > LA_5Y_PED$total_cas, paste0("up by ",round(LA_LY_PED$total_cas-LA_5Y_PED$total_cas)), paste0("down by ",LA_5Y_PED$total_cas-LA_LY_PED$total_cas))`, fatalities `r ifelse(LA_LY_PED$fatal_cas > LA_5Y_PED$fatal_cas, paste0("up by ",round(LA_LY_PED$fatal_cas-LA_5Y_PED$fatal_cas)), paste0("down by ",round(LA_5Y_PED$fatal_cas-LA_LY_PED$fatal_cas)))`, KSI casualties `r ifelse(LA_LY_PED$ksi_cas > LA_5Y_PED$ksi_cas, paste0("up by ",round(LA_LY_PED$ksi_cas-LA_5Y_PED$ksi_cas)), paste0("down by ",round(LA_5Y_PED$ksi_cas-LA_LY_PED$ksi_cas)))`, serious injuries `r ifelse(LA_LY_PED$serious_cas > LA_5Y_PED$serious_cas, paste0("up by ",round(LA_LY_PED$serious_cas-LA_5Y_PED$serious_cas)), paste0("down by ",round(LA_5Y_PED$serious_cas-LA_LY_PED$serious_cas)))` and slight injuries `r ifelse(LA_LY_PED$slight_cas > LA_5Y_PED$slight_cas, paste0("up by ",round(LA_LY_PED$slight_cas-LA_5Y_PED$slight_cas)), paste0("down by ",round(LA_5Y_PED$slight_cas-LA_LY_PED$slight_cas)))`.
+```{r }
+#| echo: false
+knitr::include_graphics(paste0(la_dir, "/plots/national/rank_Pedestrian.png"))
+
+```
+## Where in `r la_name`?
+The interactive map at [this link]() shows the location of all collisions between `r base_year` and `r upper_year` sized by severity of the casualties and coloured by the speed limit of the road it took place on and dissagregated by casualty using the radio buttons. Clicking on each casualty provides further information about the casualty. (note: sometimes when first loading the casualty types need to be toggled a few times before they show the correct corresponding dots, clue is that bus occupants don't make up many casualties)
+
+Grouping by street, using Open Street Maps data, the map at [this link]() below shows the collisions for each street coloured by KSI and dissagregated by year. Each street can be clicked to activate a pop-up with more details.
+
+## Road Network Analysis
+
+```{r osm_calc, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+# period totals
+n_links <- NROW(cas_osm_period)
+osm_total_collisions <- sum(cas_osm_period$number_of_collisions, na.rm = TRUE)
+
+# top road by collisions
+osm_sorted <- cas_osm_period |> arrange(desc(number_of_collisions))
+top_road_name <- osm_sorted$name[1]
+top_road_collisions <- osm_sorted$number_of_collisions[1]
+
+second_road_name <- osm_sorted$name[2]
+second_road_collisions <- osm_sorted$number_of_collisions[2]
+
+# yearly data
+n_years <- length(unique(cas_osm_year$year))
+yearly_totals <- cas_osm_year |> 
+  group_by(year) |> 
+  summarise(n = sum(number_of_collisions, na.rm = TRUE))
+
+peak_year <- yearly_totals$year[which.max(yearly_totals$n)]
+peak_year_n <- max(yearly_totals$n)
+
+# casualty type on OSM
+type_totals <- cas_osm_type |> 
+  group_by(casualty_type) |> 
+  summarise(n = sum(number_of_collisions, na.rm = TRUE)) |> 
+  arrange(desc(n))
+
+osm_top_type <- type_totals$casualty_type[1]
+osm_top_type_n <- type_totals$n[1]
+
+```
+
+Casualty data was matched to `r n_links` road links from OpenStreetMap for the period `r base_year` to `r upper_year`, covering `r osm_total_collisions` collisions. The road with the highest number of collisions was `r top_road_name` (`r top_road_collisions`), followed by `r second_road_name` (`r second_road_collisions`). Across `r n_years` years the peak year for collisions on mapped roads was `r peak_year` with `r peak_year_n` collisions. By casualty type the most common on the OSM network was `r osm_top_type` (`r osm_top_type_n` collisions). The table below shows the highest 20 roads by collision count for the full period. Click a header to sort the column.
+
+```{r osm_table, include=TRUE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+cas_osm_table = cas_osm_period |> 
+  st_set_geometry(NULL) |> 
+  transmute(`Road name` = name,
+            `Mean age` = round(age_of_casualty,1),
+            `Mean sex` = round(sex_of_casualty,1),
+            `Speed limit` = round(speed_limit),
+            `Number of collisions` = number_of_collisions,
+            Fatal = round(fatal),
+            Serious = round(serious),
+            KSI = round(ksi),
+            Slight = round(slight),
+            Total = round(total)) |> 
+  arrange(desc(`Number of collisions`)) |>
+  #head(20) |> 
+  reactable(
+    theme = reactableTheme(
+     style = list(fontFamily = "Geist, system-ui, sans-serif", fontSize = "13px"),
+  headerStyle = list(fontWeight = 600),
+  cellStyle = list(lineHeight = "1.5")
+  ),
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 30,
+    headerStyle = list(background = "grey")
+  ),
+  columns = list(
+    name = colDef(minWidth = 80)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 20
+)
+
+htmlwidgets::saveWidget(cas_osm_table, paste0(la_dir,"/tables/cas_osm.html"), selfcontained = TRUE)
+
+cas_osm_table
+
+```
+
+The plots below show plots of collisions of the 2 roads with the most collisions in `r la_name`: `r top_road_name` and `r second_road_name`. The plot on the left represents the casualties and the plot on the right vehicles involved. To see a plot larger, right click and either save or "open in new tab".
+
+```{r}
+#| echo: false
+#| layout-ncol: 2
+n1_rd = gsub(" ", "_", top_road_name)
+knitr::include_graphics(paste0(la_dir, "/plots/streets/",n1_rd,"_cas_map.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/streets/",n1_rd,"_All_veh_map.png"))
+```
+
+
+```{r}
+#| echo: false
+#| layout-ncol: 2
+n2_rd = gsub(" ", "_", second_road_name)
+knitr::include_graphics(paste0(la_dir, "/plots/streets/",n2_rd,"_cas_map.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/streets/",n2_rd,"_All_veh_map.png"))
+```
+## Speed Limits: Casualty rates by road speed limit
+
+In `r la_name`, according to OSM data the majority of roads are `r csl$speed_limit[csl$pc_length == max(csl$pc_length)]`mph (`r round(max(csl$pc_length))`%). Between `r base_year` and `r upper_year` the majority of collisions (`r round(max(csl$collisions))`) happened on `r csl$speed_limit[csl$collisions == max(csl$collisions)]`mph roads. (`r round(max(csl$fatal)/sum(csl$fatal)*100)`)% of fatalities happened on `r csl$speed_limit[csl$fatal == max(csl$fatal)]`mph roads, which make up `r round(csl$pc_length[csl$speed_limit == 30])`% of roads in the LA. `r round(max(csl$serious))` casualties were seriously injured on `r csl$speed_limit[csl$serious == max(csl$serious)]`mph roads. Collision rates per km are highest for `r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph roads, fatality rates highest on `r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph roads, serious injury rates highest on `r csl$speed_limit[csl$serious_km == max(csl$serious_km)]`mph and slight injury rates `r csl$speed_limit[csl$slight_km == max(csl$slight_km)]`mph. The collision rate on 20mph roads was `r csl$coll_km[csl$speed_limit == 20]/max(csl$coll_km)`% lower than the highest roads (`r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph) and fatality rates `r round(csl$fatal_km[csl$speed_limit == 20]/csl$fatal_km[csl$speed_limit == 30],2)`% of 30mph roads and `r round(csl$fatal_km[csl$speed_limit == 20]/max(csl$fatal_km),2)`% of the highest fatality rate (`r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph) roads. KSI rates were highest on `r csl$speed_limit[csl$ksi_km == max(csl$ksi_km)]`mph roads, `r round(csl$ksi_km[csl$speed_limit == 30]/csl$ksi_km[csl$speed_limit == 20],1)` times higher than 20mph roads.
+
+The chart below shows percentage of fatalities by road speed limit.
+```{r echo=FALSE}
+knitr::include_graphics(paste0(la_dir, "/plots/conditions/speed_limit_fatal.png"))
+```
+
+Applying the 30mph fatality rate (`r csl$ksi_col[csl$speed_limit == 30]`) fatalities per 1000 collisions to the number of 20mph collisions would give `r round((csl$fatal_col[csl$speed_limit == 30])*csl$collisions[csl$speed_limit == 20])` fatalities. Applying the per km rate of `r csl$coll_km[csl$speed_limit == 30]` to the 20mph road network would give a staggering `r round((csl$fatal_km[csl$speed_limit == 30])*csl$tot_length[csl$speed_limit == 20])` fatalities.
+
+```{r, include=TRUE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+library(reactable)
+
+speed_table = reactable(csl)
+
+# speed limit table
+speed_table = gt(csl,auto_align = TRUE) |>
+  #cols_width(speed_limit ~px(60)) |>
+  cols_label(speed_limit = md("**Speed Limit (mph)**"),
+             tot_length = md("**Total length (km)**"),
+             pc_length = md("**% of LA roads**"),
+             collisions = md("**Collisions**"),
+             fatal = md("**Fatal**"),
+             serious = md("**Serious**"),
+             ksi = md("**KSI**"),
+             slight = md("**Slight**"),
+             coll_km = md("**Collisions per km**"),
+             fatal_km = md("**Fatal per km**"),
+             serious_km = md("**Serious per km**"),
+             ksi_km = md("**KSI per km**"),
+             slight_km = md("**Slight per km**"),
+             fatal_col = md("**Fatal per collision**"),
+             serious_col = md("**Serious per collision**"),
+             ksi_col = md("**KSI per collision**"),
+             slight_col = md("**Slight per collision**")) |>
+  tab_footnote(md("**Source: DfT STATS19 and OSM**")) |>
+  opt_table_font(size = 11) |> 
+  opt_row_striping(row_striping = FALSE) |> 
+  tab_header(
+    title = md(paste0("**Casualties and collisions by speed limit and road length, ",la_name,": ",base_year, " to ", upper_year,"**"))) |>
+  tab_options(heading.align = "left",
+              column_labels.border.top.style = "none",
+              table.border.top.style = "none",
+              column_labels.border.bottom.style = "none",
+              column_labels.border.bottom.width = 1,
+              column_labels.border.bottom.color = "#334422",
+              table_body.border.top.style = "none",
+              table_body.border.bottom.color = "white",
+              heading.border.bottom.style = "none",
+              table.border.bottom.style = "none") |> 
+  tab_style(
+    style = cell_text(weight = "bold",size = 2),
+    locations = list(
+      cells_column_labels(columns = c(speed_limit)),
+      cells_body(columns = c(speed_limit))
+    ))
+
+gtsave(speed_table, paste0(la_dir,"/tables/cas_col_rate.html"))
+gtsave(speed_table, paste0(la_dir,"/tables/cas_col_rate.png"))
+
+speed_table
+
+```
+
+## Grouping by area and IMD
+
+### LSOA.
+The top left plot below show the distribution of the population by LSOA zone, [the most granular population data available for the whole of Great Britain](https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/lowersuperoutputareamidyearpopulationestimates). In the top right are the number of total collisions by LSOA zone, calculated by intersecting the crash data with the LSOA shape files and the bottom two plots shows the home LSOA of casualties and vehicles involved in collisions in the city.
+```{r}
+#| echo: false
+knitr::include_graphics(paste0(la_dir,"/plots/lsoa/lsoa_all.png"))
+```
+
+### Relationship with Index of Multiple Deprivation Decile (IMD)
+The Index of Multiple Deprivation (IMD) is the official measure of relative deprivation in England and is part of a suite of outputs that form the Indices of Deprivation (IoD) given as a decile in the STATS19 casualty and vehicle data for the casualty and drivers home LSOA respectively. It follows an established methodological framework in broadly defining deprivation to encompass a wide range of an individual’s living conditions. It is important in road traffic collision analysis because it says something about where harm is distributed in society. In `r la_name`, `r ifelse(pop_least_imd > 50, pop_least_imd, 100-pop_least_imd)`% of the population fall into the `r ifelse(pop_least_imd > 50, "least", "most")` deprived IMD decile. `r ifelse(cas_least_imd > 50,cas_least_imd, 100-cas_least_imd)`% of casualties injured between `r base_year` and `r upper_year` fall into the `r ifelse(cas_least_imd > 50, "least", "most")` deprived IMD decile. `r cas_imd_data`% of casualty data had home LSOA. 
+
+### IMD and Casualties
+```{r imd_calc, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+imd_total <- sum(imd_casualties$total, na.rm = TRUE)
+
+# most deprived decile (1) 
+imd_d1 <- imd_casualties |> filter(IMDDecil == 1)
+imd_d1_n <- sum(imd_d1$total)
+imd_d1_pc <- round(imd_d1_n/imd_total * 100, 1)
+
+# least deprived decile (10)
+imd_d10 <- imd_casualties |> filter(IMDDecil == 10)
+imd_d10_n <- sum(imd_d10$total)
+imd_d10_pc <- round(imd_d10_n / imd_total * 100, 1)
+
+# ratio most to least deprived
+imd_ratio <- round(imd_d1_n / imd_d10_n, 1)
+
+# peak decile for total casualties
+imd_peak <- imd_casualties$IMDDecil[which.max(imd_casualties$total)]
+imd_peak_n <- max(imd_casualties$total, na.rm = TRUE)
+imd_peak_pc <- round(imd_peak_n / imd_total * 100, 1)
+
+```
+The relationship between deprivation and road casualty risk is marked in `r la_name`. The most deprived IMD decile (decile 1) accounts for `r imd_d1_pc`% of casualties (`r imd_d1_n`), while the least deprived (decile 10) accounts for `r imd_d10_pc`% (`r imd_d10_n`). Residents of the most deprived areas are `r imd_ratio` times more likely to be a casualty than those in the least deprived decile. The decile with the highest number of casualties overall is decile `r imd_peak` with `r imd_peak_n` casualties (`r imd_peak_pc`%). As noted above, `r cas_imd_data`% of casualty records had a home LSOA that could be matched to an IMD decile, where as only xx of driver data had data on home location.
+
+The charts below show a breakdown of the ages and sex number of KSI and IMD Decil of casualties in `r la_name`.
+```{r}
+#| echo: false
+#| layout-ncol: 1
+knitr::include_graphics(paste0(la_dir, "/plots/imd/ksi_imd_age.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/imd/ksi_imd_sex.png"))
+```
+
+```{r}
+#| echo: false
+library(dplyr)
+
+main_types <- c("Car occupant", "Cyclist", "E-scooter rider", "Motorcyclist", "Pedestrian")
+df <- imd_casualties %>% filter(casualty_type %in% main_types)
+
+# Overall top IMD decile
+top_imd <- df %>% group_by(IMDDecil) %>% summarise(ksi = sum(ksi, na.rm = TRUE)) %>% 
+  slice_max(ksi, n = 1)
+
+# Top IMD by casualty type
+top_imd_type <- df %>% group_by(casualty_type, IMDDecil) %>% 
+  summarise(ksi = sum(ksi, na.rm = TRUE), .groups = "drop") %>%
+  group_by(casualty_type) %>% slice_max(ksi, n = 1)
+
+# Top age by casualty type
+top_age_type <- df %>% group_by(casualty_type, dft_age_band) %>% 
+  summarise(ksi = sum(ksi, na.rm = TRUE), .groups = "drop") %>%
+  group_by(casualty_type) %>% slice_max(ksi, n = 1)
+
+# Sex split
+sex_split <- df %>% group_by(sex_of_casualty) %>% 
+  summarise(ksi = sum(ksi, na.rm = TRUE)) %>% arrange(desc(ksi))
+
+# Most KSI casualty type
+top_type <- df %>% group_by(casualty_type) %>% 
+  summarise(ksi = sum(ksi, na.rm = TRUE)) %>% slice_max(ksi, n = 1)
+```
+
+Analysis of KSI casualties by IMD decile in `r la_name` reveals that decile `r top_imd$IMDDecil` (`r ifelse(top_imd$IMDDecil <= 3, "most deprived", ifelse(top_imd$IMDDecil >= 8, "least deprived", "mid-range"))`) accounts for the highest KSI total across casualty types combined, with approximately `r round(top_imd$ksi)` KSI casualties. `r top_type$casualty_type`s represent the highest KSI casualty type overall (~`r round(top_type$ksi)`). Pedestrian KSI peaks in decile `r top_imd_type %>% filter(casualty_type == "Pedestrian") %>% pull(IMDDecil)`, while cyclist KSI is highest in decile `r top_imd_type %>% filter(casualty_type == "Cyclist") %>% pull(IMDDecil)`. By age, the most affected groups are `r top_age_type %>% filter(casualty_type == "Pedestrian") %>% pull(dft_age_band)` for pedestrians, `r top_age_type %>% filter(casualty_type == "Cyclist") %>% pull(dft_age_band)` for cyclists, and `r top_age_type %>% filter(casualty_type == "Motorcyclist") %>% pull(dft_age_band)` for motorcyclists. Males account for approximately `r round(sex_split %>% filter(sex_of_casualty == "Male") %>% pull(ksi))` KSI casualties compared to `r round(sex_split %>% filter(sex_of_casualty == "Female") %>% pull(ksi))` for females.
+
+### MSOA
+```{r}
+#| echo: false
+library(dplyr)
+
+# sort la chart slopes
+lcs = slope_dat_la |> 
+  arrange(desc(r2)) |> 
+  slice(1:8)
+
+```
+Between LSOA and Local Authority are Medium Super Output Levels (MSOA). Because of their relatively consistent size across the country, they are a useful unit for analysing data about small local areas and they also have been allocated descriptive names by [the House of Commons Library](https://houseofcommonslibrary.github.io/msoanames/) makming it easier to describe areas. These areas have been used to analyse casualties by MSOA region and compare at a country level, similar to as has been done with LAs at the beginning of this document, but hopefully providing more targeted information for a local area.
+
+Analysing the population weighted IMD from LSOA for MSOA for different casualty types, the strongest trends are for `r paste(unique(lcs$casualty_type),collapse = ", ")` casualties as shown in the plot below.
+```{r}
+#| echo: false
+#| layout-ncol: 1
+knitr::include_graphics(paste0(la_dir, "/plots/msoa/la_8.png"))
+```
+
+```{r cas_home_calc, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+# number of MSOAs with casualty data
+n_msoa = NROW(unique(cas_df_all_LA$msoa21hclnm))
+
+# MSOA with highest casualty count
+top_msoa_count <- cas_df_all_LA$msoa21hclnm[which.max(cas_df_all_LA$total_cas)]
+top_msoa_n <- max(cas_df_all_LA$total_cas, na.rm = TRUE)
+
+# MSOA with highest mean IMD (most deprived area with casualties)
+most_deprived_msoa <- cas_df_all_LA$msoa21hclnm[which.min(cas_df_all_LA$imd_weighted)]
+most_deprived_imd <- round(max(cas_df_all_LA$imd_weighted, na.rm = TRUE),1)
+
+# least deprived
+least_deprived_msoa <- cas_df_all_LA$msoa21hclnm[which.max(cas_df_all_LA$imd_weighted)]
+least_deprived_imd <- round(min(cas_df_all_LA$imd_weighted, na.rm = TRUE), 1)
+
+# mean age across MSOAs
+overall_mean_age <- round(mean(cas_df_all_LA$mean_age, na.rm = TRUE), 1)
+
+ranking_names = names(cas_df_all_LA)[grepl("rank", names(cas_df_all_LA))]
+
+rankings = cas_df_all_LA |> st_set_geometry(NULL) |> select(ranking_names) |> mutate(across(everything(), as.numeric))
+
+
+```
+
+The table below shows data for the `r n_msoa` MSOA areas in `r la_name` where casualties live and ranked against other MSOAs nationally. Casualties involved in collisions outside of `r la_name` are also included. Between `r base_year` and `r upper_year`, the MSOA with the highest number of casualties was `r top_msoa_count` with `r round(top_msoa_n)` casualties. The most deprived MSOA (by weighted IMD score) was `r most_deprived_msoa` (IMD `r most_deprived_imd`), while the least deprived was `r least_deprived_msoa` (IMD `r least_deprived_imd`). The highest MSOA regions per capita where casualties live in `r la_name` are `r cas_df_all_LA$msoa21hclnm[cas_df_all_LA$fatal_pcap_rank == min(cas_df_all_LA$fatal_pcap_rank)]`, ranked `r min(cas_df_all_LA$fatal_pcap_rank)` nationally out of 7264 for fatalities per capita, `r cas_df_all_LA$msoa21hclnm[cas_df_all_LA$ksi_pcap_rank == min(cas_df_all_LA$ksi_pcap_rank)]` ranked `r min(cas_df_all_LA$ksi_pcap_rank)` for KSIs, `r cas_df_all_LA$msoa21hclnm[cas_df_all_LA$serious_pcap_rank == min(cas_df_all_LA$serious_pcap_rank)]` ranked `r min(cas_df_all_LA$serious_pcap_rank)` for Serious casualties.
+
+```{r cas_home_table, include=TRUE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+cas_df = cas_df_all_LA |> 
+  st_set_geometry(NULL) |> 
+  ungroup() |> 
+  transmute(`MSOA name` = msoa21hclnm,
+            `Fatal rank` = fatal_rank,
+            `Serious rank` = serious_rank,
+            `Slight rank` = slight_rank,
+            `KSI rank` = ksi_rank,
+            `Total rank` = total_rank,
+            `Population` = round(pop),
+            `Fatal per capita rank` = fatal_pcap_rank,
+            `Serious per captia rank` = serious_pcap_rank,
+            `KSI per captia rank` = ksi_pcap_rank,
+            `Total per captia rank` = total_pcap_rank)|>
+  #head(20) |> 
+  reactable(
+    theme = reactableTheme(
+     style = list(fontFamily = "Geist, system-ui, sans-serif", fontSize = "13px"),
+  headerStyle = list(fontWeight = 600),
+  cellStyle = list(lineHeight = "1.5")
+  ),
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 30,
+    headerStyle = list(background = "grey")
+  ),
+  columns = list(
+    `MSOA name` = colDef(minWidth = 80)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 20
+)
+
+htmlwidgets::saveWidget(cas_df, paste0(la_dir,"/tables/cas_msoa_rank.html"), selfcontained = TRUE)
+
+cas_df
+
+```
+
+## Casualty Demographics
+
+```{r age_sex_calc, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+# total casualties by sex
+sex_totals <- age_sex |> 
+  group_by(sex_of_casualty) |> 
+  summarise(
+    n_fatal = sum(Fatal, na.rm = TRUE),
+    n_serious = sum(Serious, na.rm = TRUE),
+    n_slight = sum(Slight, na.rm = TRUE),
+    n_ksi = sum(KSI, na.rm = TRUE),
+    n_all = n_fatal + n_serious + n_slight
+  )
+
+total_all <- sum(sex_totals$n_all)
+male_n <- sex_totals$n_all[sex_totals$sex_of_casualty == "Male"]
+female_n <- sex_totals$n_all[sex_totals$sex_of_casualty == "Female"]
+male_pc <- round(male_n / total_all * 100, 1)
+female_pc <- round(female_n / total_all * 100, 1)
+
+# peak age band
+age_totals <- age_sex |> 
+  group_by(age_band) |> 
+  summarise(n = sum(Fatal + Serious + Slight, na.rm = TRUE)) |> 
+  mutate(pc = round(n / sum(n) * 100, 1))
+
+peak_age <- age_totals$age_band[which.max(age_totals$n)]
+peak_age_pc <- age_totals$pc[which.max(age_totals$n)]
+
+# KSI by sex
+male_ksi <- sex_totals$n_ksi[sex_totals$sex_of_casualty == "Male"]
+female_ksi <- sex_totals$n_ksi[sex_totals$sex_of_casualty == "Female"]
+male_ksi_pc <- round(male_ksi / sum(sex_totals$n_ksi) * 100, 1)
+
+# highest KSI age band
+age_ksi <- age_sex |> 
+  group_by(age_band) |> 
+  summarise(ksi = sum(KSI, na.rm = TRUE)) |> 
+  mutate(pc = round(ksi / sum(ksi) * 100, 1))
+
+peak_ksi_age <- age_ksi$age_band[which.max(age_ksi$ksi)]
+peak_ksi_age_pc <- age_ksi$pc[which.max(age_ksi$ksi)]
+
+```
+
+Between `r base_year` and `r upper_year`, `r male_pc`% of all casualties in `r la_name` were male and `r female_pc`% were female. Males also accounted for `r male_ksi_pc`% of KSI casualties. The most common age band for casualties was `r peak_age` (`r peak_age_pc`% of all casualties), while the highest KSI rate was among the `r peak_ksi_age` age band (`r peak_ksi_age_pc`% of all KSI). The table below shows the full breakdown of casualties by age band and sex, with severity and the percentage share of KSI and all casualties.
+```{r}
+#| echo: false
+knitr::include_graphics(paste0(la_dir, "/plots/demog/demographics.png"))
+```
+
+```{r age_sex_table, include=TRUE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+age_sex_table = age_sex |> 
+  filter(!sex_of_casualty == "Data missing or out of range") |> 
+  ungroup() |> 
+  transmute(`Sex of casualty` = sex_of_casualty,
+            `Age band` = age_band,
+            Fatal = round(Fatal),
+            Serious = round(Serious),
+            Slight = round(Slight),
+            KSI = round(KSI),
+            All = round(All),
+            `% KSI` = round(pc_ksi,1),
+            `% All` = round(pc_all,1))|>
+  #head(20) |> 
+  reactable(
+    theme = reactableTheme(
+     style = list(fontFamily = "Geist, system-ui, sans-serif", fontSize = "13px"),
+  headerStyle = list(fontWeight = 600),
+  cellStyle = list(lineHeight = "1.5")
+  ),
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 30,
+    headerStyle = list(background = "grey")
+  ),
+  columns = list(
+    `Sex of casualty` = colDef(minWidth = 30)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 25
+)
+
+htmlwidgets::saveWidget(cas_df, paste0(la_dir,"/tables/cas_msoa_rank.html"), selfcontained = TRUE)
+
+age_sex_table
+
+```
+## Cost of prevention
+Government TAG methodology (described [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995103/rcgb-1994-article-5-valuation-of-road-accidents-revision.pdf) and [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995110/rrcgb-valuation-methodology.pdf) allocates a cost of prevention to each collision. The costs are calculated initially based on casualty severity and then grouped by collision severity. For example, the cost of fatal collisions includes the cost of all casualties (including serious and slight casualties) that occur in fatal collisions. This can be matched in various ways to the collision data. The two methods used for the [overall reporting in ONS](https://assets.publishing.service.gov.uk/media/68d421cc275fc9339a248c8e/ras4001.ods) is to simply match the collision severity recorded in the crash data to a single cost for slight, serious and fatal and also to match based on severity and road type. Using the same methods as in the ONS report, the table below shows the total cost of prevention for the collisions `r la_name`.
+```{r}
+#| echo: false
+#| layout-ncol: 1
+knitr::include_graphics(paste0(la_dir, "/plots/costs/",la_name,"_summarise_tag_costs.png"))
+knitr::include_graphics(paste0(la_dir, "/plots/costs/",la_name,"_summarise_tag_costs_road.png"))
+
+# lowest and highest cost per collision
+lowest_cpc = min(cc_spd$tot_cost_per_col)
+highest_cpc = max(cc_spd$tot_cost_per_col)
+# speed of each
+speed_lowest_cpc = cc_spd$speed_limit[cc_spd$tot_cost_per_col ==min(cc_spd$tot_cost_per_col)]
+speed_highest_cpc = cc_spd$speed_limit[cc_spd$tot_cost_per_col ==max(cc_spd$tot_cost_per_col)]
+# pc of collisions for the lowest and highest 
+pc_cols_low = round(cc_spd$ncols[cc_spd$speed_limit == speed_lowest_cpc]/sum(cc_spd$ncols)*100)
+pc_cols_high = round(cc_spd$ncols[cc_spd$speed_limit == speed_highest_cpc]/sum(cc_spd$ncols)*100)
+
+tot_low = min(cc_spd$total_cost)
+tot_high = max(cc_spd$total_cost)
+second_high = sort(cc_spd$total_cost,decreasing = TRUE)[2]
+
+speed_lowest_tot = cc_spd$speed_limit[cc_spd$total_cost == min(cc_spd$total_cost)]
+speed_highest_tot = cc_spd$speed_limit[cc_spd$total_cost ==max(cc_spd$total_cost)]
+speed_2nd_highest_tot = cc_spd$speed_limit[cc_spd$total_cost ==second_high]
+
+# pc of total cost for lowest and highest a pc of total cost of all
+pc_tot_low = round(cc_spd$total_cost[cc_spd$speed_limit == speed_lowest_cpc]/sum(cc_spd$total_cost)*100)
+pc_tot_high = round(cc_spd$total_cost[cc_spd$speed_limit == speed_highest_cpc]/sum(cc_spd$total_cost)*100)
+
+thirty_v_20 = round(cc_spd$tot_cost_per_col[cc_spd$speed_limit == 30]/cc_spd$tot_cost_per_col[cc_spd$speed_limit == 20],1)
+
+```
+
+The cost of collisions by vehicle involved and by speed limit are shown in the plot below. `r speed_highest_tot`mph roads had the highest total cost with £`r prettyNum(round(tot_high), big.mark = ",")`, `r round(((tot_high/second_high)-1)*100,1)`% above `r speed_2nd_highest_tot`mph. The lowest total cost were `r speed_lowest_tot`mph with £`r prettyNum(round(tot_low), big.mark = ",")`
+
+```{r}
+#| echo: false
+#| layout-ncol: 1
+knitr::include_graphics(paste0(la_dir, "/plots/costs/tag_total_cost_costs_speed_limit.png"))
+```
+
+Dividing the total cost on each road by the number of collisions gives an estimate for the average cost of each collision on each road. The lowest (£`r prettyNum(round(lowest_cpc), big.mark = ",")`) were `r speed_lowest_cpc`mph roads and the highest (£`r prettyNum(round(highest_cpc), big.mark = ",")`) `r speed_highest_cpc`mph roads. `r pc_cols_low`% of total collisions took place on `r speed_lowest_cpc`mph roads, but `r pc_tot_low`% of the total cost and `r speed_highest_cpc`mph roads had `r pc_cols_high`% of total collisions but `r pc_tot_high`% of the total cost. The cost of collisions on `r speed_highest_cpc`mph roads are, on average, `r round(highest_cpc/lowest_cpc,1)` times higher than `r speed_lowest_cpc`mph roads. The average cost of collisions on 30mph roads was `r thirty_v_20` times higher than 20mph roads.
+```{r}
+#| echo: false
+#| layout-ncol: 1
+knitr::include_graphics(paste0(la_dir, "/plots/costs/tag_cost_per_col_costs_speed_limit.png"))
+```
+
+## Single Vehicle Pavement Collisions
+
+```{r pave_calc, include=FALSE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+pave_total_collisions <- sum(sing_veh_pave$Collisions, na.rm = TRUE)
+pave_total_cas <- sum(sing_veh_pave$Total, na.rm = TRUE)
+
+pave_sorted <- sing_veh_pave |> arrange(desc(Total))
+pave_top_type <- pave_sorted$vehicle_type[1]
+pave_top_n <- pave_sorted$Total[1]
+pave_top_coll <- pave_sorted$Collisions[1]
+
+cgt_la = filter(sing_veh_pave,vehicle_type %in% c("Car","Goods vehicle","Taxi", "Bus"))
+
+bike_escoot_la = filter(sing_veh_pave,vehicle_type %in% c("Pedal cycle", "e-scooter"))
+
+cgt = filter(sing_veh_pave_gb,vehicle_type %in% c("Car","Goods vehicle","Taxi", "Bus"))
+
+bike_escoot = filter(sing_veh_pave_gb,vehicle_type %in% c("Pedal cycle", "e-scooter"))
+
+```
+
+Between `r base_year` and `r upper_year`, nationally there were `r sum(sing_veh_pave_gb$Collisions)` single-vehicle collisions where a pedestrian was struck on a footway or verge. `r round(sum(cgt$Collisions)/sum(sing_veh_pave_gb$Collisions)*100)`% were people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Collisions)/sum(sing_veh_pave_gb$Collisions)*100)`% were people riding pedal cycles and e-scooters. Of these collisions there were `r sum(sing_veh_pave_gb$Fatal)` fatalities, `r round(sum(cgt$Fatal)/sum(sing_veh_pave_gb$Fatal)*100)`% of these fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Fatal)/sum(sing_veh_pave_gb$Fatal)*100)`% died from collisions with people riding pedal cycles and e-scooters. A further `r round(sum(sing_veh_pave_gb$Serious))` serious injuries, `r round(sum(cgt$Serious)/sum(sing_veh_pave_gb$Serious)*100)`% of the fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Serious)/sum(sing_veh_pave_gb$Serious)*100)`% from collisions with people riding pedal cycles and e-scooters.
+
+In `r la_name` there were `r pave_total_collisions` resulting in `r pave_total_cas` casualties in `r la_name`. The vehicle type most commonly involved was `r pave_top_type` with `r pave_top_coll` collisions and `r pave_top_n` casualties. `r round(sum(cgt_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% of the vehicles in collisions were people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% were people riding pedal cycles and escooters. Of these collisions there were `r sum(sing_veh_pave$Fatal)` fatalities, `r round(sum(cgt_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% of these collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% from collisions with people riding pedal cycles and e-scooters. A further `r round(sum(sing_veh_pave$Serious))` serious injuries, `r round(sum(cgt_la$Serious)/sum(sing_veh_pave$Serious)*100)`% of which were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Serious)/sum(sing_veh_pave$Serious)*100)`% from collisions with people riding pedal cycles and e-scooters.
+The plot below is meant to visually represent a pavement with squares for all the KSI casualties in `r la_name` coloured by the vehicle that hit them.
+```{r echo=FALSE}
+knitr::include_graphics(paste0(la_dir, "/plots/streets/KSI_pavements.png"))
+```
+
+## Appendix
+
+# Casualty type categorisation.
+
+```{r, include=TRUE, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+cas_type_table = gt(cas_type,auto_align = TRUE) |>
+  cols_width(casualty_type ~px(500)) |>
+  cols_label(casualty_type = md("**STATS19 Name**"),
+             short_name = md("**Catagorised**")) |>
+  tab_header(
+    title = md(paste0("**Table showing casualty groupings used in report**"))) |>
+  tab_options(heading.align = "left",
+              column_labels.border.top.style = "none",
+              table.border.top.style = "none",
+              column_labels.border.bottom.style = "none",
+              column_labels.border.bottom.width = 1,
+              column_labels.border.bottom.color = "black",
+              table_body.border.top.style = "none",
+              table_body.border.bottom.color = "white",
+              heading.border.bottom.style = "none",
+              table.border.bottom.style = "none") |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = list(
+      cells_column_labels(columns = c(casualty_type)),
+      cells_body(columns = c(casualty_type))
+    )) |>
+  tab_style(
+    style = cell_fill(color = "white"),
+    locations = cells_body(columns = everything()))
+
+cas_type_table
+
+```

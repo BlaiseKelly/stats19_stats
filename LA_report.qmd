@@ -148,7 +148,7 @@ cas_osm_table = cas_osm_period |>
             KSI = round(ksi),
             Slight = round(slight),
             Total = round(total)) |> 
-  arrange(desc(`Number of collisions`)) |>
+  arrange(desc(`# collisions`)) |>
   #head(20) |> 
   reactable(
     theme = reactableTheme(

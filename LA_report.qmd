@@ -1,5 +1,5 @@
 ---
-title: "Reported road casualties: STATS19 factsheet"
+title: "STATS19 reported road casualties: LA region of Bristol"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:
@@ -20,7 +20,7 @@ library(data.table)
 library(htmltools)
 library(reactable)
 
-la_name = "Leeds"
+la_name = "Bristol"
 
 la_dir = paste0("outputs/", la_name)
 
@@ -142,7 +142,7 @@ cas_osm_table = cas_osm_period |>
             `Mean age` = round(age_of_casualty,1),
             `Mean sex` = round(sex_of_casualty,1),
             `Speed limit` = round(speed_limit),
-            `Number of collisions` = number_of_collisions,
+            `# collisions` = number_of_collisions,
             Fatal = round(fatal),
             Serious = round(serious),
             KSI = round(ksi),
@@ -168,7 +168,7 @@ cas_osm_table = cas_osm_period |>
   ),
   bordered = TRUE,
   highlight = TRUE,
-  defaultPageSize = 20
+  defaultPageSize = 10
 )
 
 htmlwidgets::saveWidget(cas_osm_table, paste0(la_dir,"/tables/cas_osm.html"), selfcontained = TRUE)
@@ -526,7 +526,7 @@ age_sex_table
 
 ```
 ## Cost of prevention
-Government TAG methodology (described [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995103/rcgb-1994-article-5-valuation-of-road-accidents-revision.pdf) and [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995110/rrcgb-valuation-methodology.pdf) allocates a cost of prevention to each collision. The costs are calculated initially based on casualty severity and then grouped by collision severity. For example, the cost of fatal collisions includes the cost of all casualties (including serious and slight casualties) that occur in fatal collisions. This can be matched in various ways to the collision data. The two methods used for the [overall reporting in ONS](https://assets.publishing.service.gov.uk/media/68d421cc275fc9339a248c8e/ras4001.ods) is to simply match the collision severity recorded in the crash data to a single cost for slight, serious and fatal and also to match based on severity and road type. Using the same methods as in the ONS report, the table below shows the total cost of prevention for the collisions `r la_name`.
+Government TAG methodology (described [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995103/rcgb-1994-article-5-valuation-of-road-accidents-revision.pdf) and [here](https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/995110/rrcgb-valuation-methodology.pdf) allocates a cost of prevention to each collision. The costs are calculated initially based on casualty severity and then grouped by collision severity. For example, the cost of fatal collisions includes the cost of all casualties (including serious and slight casualties) that occur in fatal collisions. This can be matched in various ways to the collision data. The two methods used for the [overall reporting in ONS](https://assets.publishing.service.gov.uk/media/68d421cc275fc9339a248c8e/ras4001.ods) is to simply match the collision severity recorded in the crash data to a single cost for slight, serious and fatal and also to match based on severity and road type. Using the same methods as in the ONS report, the chart below shows the total cost of prevention for the collisions `r la_name`.
 ```{r}
 #| echo: false
 #| layout-ncol: 1
@@ -598,7 +598,7 @@ bike_escoot = filter(sing_veh_pave_gb,vehicle_type %in% c("Pedal cycle", "e-scoo
 
 Between `r base_year` and `r upper_year`, nationally there were `r sum(sing_veh_pave_gb$Collisions)` single-vehicle collisions where a pedestrian was struck on a footway or verge. `r round(sum(cgt$Collisions)/sum(sing_veh_pave_gb$Collisions)*100)`% were people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Collisions)/sum(sing_veh_pave_gb$Collisions)*100)`% were people riding pedal cycles and e-scooters. Of these collisions there were `r sum(sing_veh_pave_gb$Fatal)` fatalities, `r round(sum(cgt$Fatal)/sum(sing_veh_pave_gb$Fatal)*100)`% of these fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Fatal)/sum(sing_veh_pave_gb$Fatal)*100)`% died from collisions with people riding pedal cycles and e-scooters. A further `r round(sum(sing_veh_pave_gb$Serious))` serious injuries, `r round(sum(cgt$Serious)/sum(sing_veh_pave_gb$Serious)*100)`% of the fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot$Serious)/sum(sing_veh_pave_gb$Serious)*100)`% from collisions with people riding pedal cycles and e-scooters.
 
-In `r la_name` there were `r pave_total_collisions` resulting in `r pave_total_cas` casualties in `r la_name`. The vehicle type most commonly involved was `r pave_top_type` with `r pave_top_coll` collisions and `r pave_top_n` casualties. `r round(sum(cgt_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% of the vehicles in collisions were people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% were people riding pedal cycles and escooters. Of these collisions there were `r sum(sing_veh_pave$Fatal)` fatalities, `r round(sum(cgt_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% of these collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% from collisions with people riding pedal cycles and e-scooters. A further `r round(sum(sing_veh_pave$Serious))` serious injuries, `r round(sum(cgt_la$Serious)/sum(sing_veh_pave$Serious)*100)`% of which were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Serious)/sum(sing_veh_pave$Serious)*100)`% from collisions with people riding pedal cycles and e-scooters.
+In `r la_name` there were `r pave_total_collisions` reported incidents, resulting in `r pave_total_cas` casualties. The vehicle type most commonly involved was `r pave_top_type` with `r pave_top_coll` collisions and `r pave_top_n` casualties. `r round(sum(cgt_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% of the vehicles in collisions were people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Collisions)/sum(sing_veh_pave$Collisions)*100)`% were people riding pedal cycles and escooters. Of these collisions there were `r sum(sing_veh_pave$Fatal)` fatalities, `r round(sum(cgt_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% of these collisions were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Fatal)/sum(sing_veh_pave$Fatal)*100)`% from collisions with people riding pedal cycles and e-scooters. A further `r round(sum(sing_veh_pave$Serious))` serious injuries, `r round(sum(cgt_la$Serious)/sum(sing_veh_pave$Serious)*100)`% of which were with people driving Cars, Taxis, Goods vehicles and Buses and `r round(sum(bike_escoot_la$Serious)/sum(sing_veh_pave$Serious)*100)`% from collisions with people riding pedal cycles and e-scooters.
 The plot below is meant to visually represent a pavement with squares for all the KSI casualties in `r la_name` coloured by the vehicle that hit them.
 ```{r echo=FALSE}
 knitr::include_graphics(paste0(la_dir, "/plots/streets/KSI_pavements.png"))

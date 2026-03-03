@@ -20,13 +20,13 @@ library(data.table)
 library(htmltools)
 library(reactable)
 
-la_name = "Bristol"
+#authority = "Bristol"
+
+la_name = authority
 
 la_dir = paste0("outputs/", la_name)
 
 load(paste0(la_dir,"/data/LA_report_dat.Rdata"))
-
-plot_path = paste0(la_dir, "plots/lsoa_all.png")
 
 ```
 # Introduction
@@ -197,7 +197,7 @@ knitr::include_graphics(paste0(la_dir, "/plots/streets/",n2_rd,"_All_veh_map.png
 ```
 ## Speed Limits: Casualty rates by road speed limit
 
-In `r la_name`, according to OSM data the majority of roads are `r csl$speed_limit[csl$pc_length == max(csl$pc_length)]`mph (`r round(max(csl$pc_length))`%). Between `r base_year` and `r upper_year` the majority of collisions (`r round(max(csl$collisions))`) happened on `r csl$speed_limit[csl$collisions == max(csl$collisions)]`mph roads. (`r round(max(csl$fatal)/sum(csl$fatal)*100)`)% of fatalities happened on `r csl$speed_limit[csl$fatal == max(csl$fatal)]`mph roads, which make up `r round(csl$pc_length[csl$speed_limit == 30])`% of roads in the LA. `r round(max(csl$serious))` casualties were seriously injured on `r csl$speed_limit[csl$serious == max(csl$serious)]`mph roads. Collision rates per km are highest for `r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph roads, fatality rates highest on `r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph roads, serious injury rates highest on `r csl$speed_limit[csl$serious_km == max(csl$serious_km)]`mph and slight injury rates `r csl$speed_limit[csl$slight_km == max(csl$slight_km)]`mph. The collision rate on 20mph roads was `r csl$coll_km[csl$speed_limit == 20]/max(csl$coll_km)`% lower than the highest roads (`r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph) and fatality rates `r round(csl$fatal_km[csl$speed_limit == 20]/csl$fatal_km[csl$speed_limit == 30],2)`% of 30mph roads and `r round(csl$fatal_km[csl$speed_limit == 20]/max(csl$fatal_km),2)`% of the highest fatality rate (`r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph) roads. KSI rates were highest on `r csl$speed_limit[csl$ksi_km == max(csl$ksi_km)]`mph roads, `r round(csl$ksi_km[csl$speed_limit == 30]/csl$ksi_km[csl$speed_limit == 20],1)` times higher than 20mph roads.
+In `r la_name`, according to OSM data the majority of roads are `r csl$speed_limit[csl$pc_length == max(csl$pc_length)]`mph (`r round(max(csl$pc_length))`%). Between `r base_year` and `r upper_year` the majority of collisions (`r round(max(csl$collisions))`) happened on `r csl$speed_limit[csl$collisions == max(csl$collisions)]`mph roads. (`r round(max(csl$fatal)/sum(csl$fatal)*100)`)% of fatalities happened on `r csl$speed_limit[csl$fatal == max(csl$fatal)]`mph roads, which make up `r round(csl$pc_length[csl$speed_limit == 30])`% of roads in the LA. `r round(max(csl$serious))` casualties were seriously injured on `r csl$speed_limit[csl$serious == max(csl$serious)]`mph roads. Collision rates per km are highest for `r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph roads, fatality rates highest on `r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph roads, serious injury rates highest on `r csl$speed_limit[csl$serious_km == max(csl$serious_km)]`mph and slight injury rates `r csl$speed_limit[csl$slight_km == max(csl$slight_km)]`mph. The collision rate on 20mph roads was `r round((csl$coll_km[csl$speed_limit == 20]/max(csl$coll_km))*100,1)`% lower than the highest roads (`r csl$speed_limit[csl$coll_km == max(csl$coll_km)]`mph) and fatality rates `r round((csl$fatal_km[csl$speed_limit == 20]/csl$fatal_km[csl$speed_limit == 30])*100,1)`% of 30mph roads and `r round((csl$fatal_km[csl$speed_limit == 20]/max(csl$fatal_km))*100,1)`% of the highest fatality rate (`r csl$speed_limit[csl$fatal_km == max(csl$fatal_km)]`mph) roads. KSI rates were highest on `r csl$speed_limit[csl$ksi_km == max(csl$ksi_km)]`mph roads, `r round(csl$ksi_km[csl$speed_limit == 30]/csl$ksi_km[csl$speed_limit == 20],1)` times higher than 20mph roads.
 
 The chart below shows percentage of fatalities by road speed limit.
 ```{r echo=FALSE}
@@ -557,9 +557,10 @@ pc_tot_high = round(cc_spd$total_cost[cc_spd$speed_limit == speed_highest_cpc]/s
 
 thirty_v_20 = round(cc_spd$tot_cost_per_col[cc_spd$speed_limit == 30]/cc_spd$tot_cost_per_col[cc_spd$speed_limit == 20],1)
 
+
 ```
 
-The cost of collisions by vehicle involved and by speed limit are shown in the plot below. `r speed_highest_tot`mph roads had the highest total cost with £`r prettyNum(round(tot_high), big.mark = ",")`, `r round(((tot_high/second_high)-1)*100,1)`% above `r speed_2nd_highest_tot`mph. The lowest total cost were `r speed_lowest_tot`mph with £`r prettyNum(round(tot_low), big.mark = ",")`
+The cost of collisions by vehicle involved and by speed limit are shown in the plot below. The total cost over the period was `r sum(cc_spd$total_cost)`, `r speed_highest_tot`mph roads had the highest total cost with £`r prettyNum(round(tot_high), big.mark = ",")`, `r round(((tot_high/second_high)-1)*100,1)`% above `r speed_2nd_highest_tot`mph. The lowest total cost were `r speed_lowest_tot`mph with £`r prettyNum(round(tot_low), big.mark = ",")`
 
 ```{r}
 #| echo: false

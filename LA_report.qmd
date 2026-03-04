@@ -1,6 +1,8 @@
 ---
 title: "STATS19 reported road casualties: LA region of Bristol"
 date: "`r Sys.Date()`"
+params:
+  authority: "default"
 output:
   rmarkdown::html_document:
     toc: true
@@ -22,7 +24,7 @@ library(reactable)
 
 #authority = "Bristol"
 
-la_name = authority
+la_name = params$authority
 
 la_dir = paste0("outputs/", la_name)
 

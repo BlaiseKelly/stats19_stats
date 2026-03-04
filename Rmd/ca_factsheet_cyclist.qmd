@@ -1,5 +1,5 @@
 ---
-title: "Reported road casualties: cyclist factsheet"
+title: "Reported road casualties: Cyclist factsheet"
 author: "Blaise Kelly"
 date: "`r Sys.Date()`"
 output:

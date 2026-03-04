@@ -1,5 +1,5 @@
 ---
-title: "Reported road casualties: cyclist factsheet"
+title: "Reported road casualties: Pedestrian factsheet"
 author: "Blaise Kelly"
 date: "`r Sys.Date()`"
 output:
@@ -66,8 +66,8 @@ knitr::opts_chunk$set(
   ca <- "West of England"
 
   # what casualty is the report for? options Pedestrian, Cyclist, escooters
-  #report_casualty <- "Pedestrian"
-  report_casualty <- "Cyclist"
+  report_casualty <- "Pedestrian"
+  #report_casualty <- "Cyclist"
   
   # stats19 usually updated in September, so if it is October last years data should be there
   yr2calc <- 2024

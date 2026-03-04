@@ -248,11 +248,12 @@ This report is an adaption of the national [DfT road safety factsheets](https://
     tm_layout(frame = FALSE, title = paste0("Location of ", tolower(report_casualty)," casualties since 2004 (log scale)"))+tm_legend(frame = FALSE)
 
  tm_out <- tmap_arrange(tm1,tm2)
-tmap_save(tm_out,"plots/map.png", width = 5000, height = 4000, dpi = 320)
+ tm_out
+#tmap_save(tm_out,"plots/map.png", width = 5000, height = 4000, dpi = 320)
 
 ```
 
-![](plots/map.png)
+<!-- ![](plots/map.png) -->
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE}
 

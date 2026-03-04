@@ -5,6 +5,9 @@ project:
     - index.qmd
     - about.qmd
     - LA_report.qmd
+    - Rmd/ca_factsheet_cyclist.qmd
+    - Rmd/dft_pedestrian_factsheet.qmd
+    - Rmd/ca_factsheet_pedestrian.qmd
 
 
 website:
@@ -25,6 +28,12 @@ website:
         text: Casualties home MSOA ranked
       - href: outputs/Bristol/tables/cas_col_rate.html
         text: Casualty rate and speed limits table
+      - href: Rmd/dft_pedestrian_factsheet.qmd
+        text: DfT Pedestrian factsheet
+      - href: Rmd/ca_factsheet_cyclist.qmd
+        text: WECA Cyclist factsheet
+      - href: Rmd/ca_factsheet_pedestrian.qmd
+        text: WECA Pedestrian factsheet
       - about.qmd
 
 format:

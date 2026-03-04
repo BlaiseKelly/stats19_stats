@@ -22,13 +22,13 @@ library(data.table)
 library(htmltools)
 library(reactable)
 
-#authority = "Bristol"
-
 la_name = params$authority
 
 la_dir = paste0("outputs/", la_name)
 
 load(paste0(la_dir,"/data/LA_report_dat.Rdata"))
+
+#plot_path = paste0(la_dir, "plots/lsoa_all.png")
 
 ```
 # Introduction
@@ -559,10 +559,9 @@ pc_tot_high = round(cc_spd$total_cost[cc_spd$speed_limit == speed_highest_cpc]/s
 
 thirty_v_20 = round(cc_spd$tot_cost_per_col[cc_spd$speed_limit == 30]/cc_spd$tot_cost_per_col[cc_spd$speed_limit == 20],1)
 
-
 ```
 
-The cost of collisions by vehicle involved and by speed limit are shown in the plot below. The total cost over the period was `r sum(cc_spd$total_cost)`, `r speed_highest_tot`mph roads had the highest total cost with £`r prettyNum(round(tot_high), big.mark = ",")`, `r round(((tot_high/second_high)-1)*100,1)`% above `r speed_2nd_highest_tot`mph. The lowest total cost were `r speed_lowest_tot`mph with £`r prettyNum(round(tot_low), big.mark = ",")`
+The cost of collisions by vehicle involved and by speed limit are shown in the plot below. `r speed_highest_tot`mph roads had the highest total cost with £`r prettyNum(round(tot_high), big.mark = ",")`, `r round(((tot_high/second_high)-1)*100,1)`% above `r speed_2nd_highest_tot`mph. The lowest total cost were `r speed_lowest_tot`mph with £`r prettyNum(round(tot_low), big.mark = ",")`
 
 ```{r}
 #| echo: false

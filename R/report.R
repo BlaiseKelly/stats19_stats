@@ -151,22 +151,22 @@ casualties_imd_more_less <- casualties_imd |>
 
 # import Index of deprivation which also inclues high res LSOA shapes
 IMD_2025 = st_read("../IMD/dat/LSOA_IMD2025_WGS84_-4854136717238973930.gpkg")
-print("here1")
+
 # get lsoa boundaries
 # lsoa_boundaries_21 = st_read("https://github.com/BlaiseKelly/stats19_stats/releases/download/boundaries-v1.0/lsoa_boundaries.gpkg") |> 
 #   st_transform(4326)
 
 lsoa_boundaries_21 = dplyr::select(IMD_2025,LSOA21CD,LSOA21NM,geom = SHAPE) |> 
   st_transform(4326)
-print("here2")
+
 st_geometry(lsoa_boundaries_21) = lsoa_boundaries_21$geom
-print("here3")
+
 # find centre points to neatly intersect with city shape
 lsoa_centroids = st_centroid(lsoa_boundaries_21)
-print("here4")
+
 # get lsoas within the city
 city_lsoa = lsoa_centroids[city_shp,]
-print("here5")
+
 # ONS population
 # gb_pop <- read.xlsx("https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/lowersuperoutputareamidyearpopulationestimates/mid2022revisednov2025tomid2024/sapelsoasyoa20222024.xlsx",
 #                     sheet = "Mid-2024 LSOA 2021",startRow = 4)

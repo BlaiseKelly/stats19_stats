@@ -94,3 +94,10 @@ summarise_vehicle_types <- function(vehicles, summary_type = c("short_name", "dr
 #' @examples
 #' basemap_options
 basemap_options = c("CartoDB.DarkMatter","Stadia.AlidadeSmoothDark", "CartoDB.Positron")
+
+
+run_report <- function(authority) {
+  params <- list(authority = authority)
+  source("R/report.R", local = list2env(params))
+  quarto::quarto_render("LA_report.qmd", execute_params = params)
+}

@@ -1,8 +1,6 @@
 ---
 title: "STATS19 reported road casualties: LA region of Bristol"
 date: "`r Sys.Date()`"
-params:
-  authority: "default"
 output:
   rmarkdown::html_document:
     toc: true
@@ -22,7 +20,7 @@ library(data.table)
 library(htmltools)
 library(reactable)
 
-la_name = params$authority
+la_name = "Bristol"
 
 la_dir = paste0("outputs/", la_name)
 
@@ -94,9 +92,14 @@ knitr::include_graphics(paste0(la_dir, "/plots/national/rank_Pedestrian.png"))
 
 ```
 ## Where in `r la_name`?
-The interactive map at [this link]() shows the location of all collisions between `r base_year` and `r upper_year` sized by severity of the casualties and coloured by the speed limit of the road it took place on and dissagregated by casualty using the radio buttons. Clicking on each casualty provides further information about the casualty. (note: sometimes when first loading the casualty types need to be toggled a few times before they show the correct corresponding dots, clue is that bus occupants don't make up many casualties)
+The interactive map at [this link](https://blaisekelly.github.io/stats19_stats/outputs/Bristol/maps/cas_location_Speed%20limit.html) shows the location of all collisions between `r base_year` and `r upper_year` sized by severity of the casualties and coloured by the speed limit of the road it took place on and dissagregated by casualty using the radio buttons. Clicking on each casualty provides further information about the casualty. (note: sometimes when first loading the casualty types need to be toggled a few times before they show the correct corresponding dots, clue is that bus occupants don't make up many casualties)
+# ```{r, fig.width=100%}
+# #| echo: false
+# knitr::include_graphics("https://blaisekelly.github.io/stats19_stats/outputs/Bristol/maps/cas_location_Speed%20limit.html")
+# 
+# ```
 
-Grouping by street, using Open Street Maps data, the map at [this link]() below shows the collisions for each street coloured by KSI and dissagregated by year. Each street can be clicked to activate a pop-up with more details.
+Grouping by street, using Open Street Maps data, the map at [this link](https://blaisekelly.github.io/stats19_stats/outputs/Bristol/maps/osm_casualty_type_Total.html) shows the collisions for each street coloured by KSI and dissagregated by year. Each street can be clicked to activate a pop-up with more details.
 
 ## Road Network Analysis
 

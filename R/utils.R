@@ -98,6 +98,7 @@ basemap_options = c("CartoDB.DarkMatter","Stadia.AlidadeSmoothDark", "CartoDB.Po
 # run the report R script to generate the output files for the 
 run_report_inputs <- function(authority) {
   params <- list(authority = authority)
+  
   source("R/report.R", local = list2env(params))
 }
 

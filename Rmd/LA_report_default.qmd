@@ -31,8 +31,7 @@ load(paste0(la_dir,"/data/LA_report_dat.Rdata"))
 ```
 # Introduction
 This is a report for the Local Authority (LA) region of `r la_name`, which can be reproduced for any LA by cloning the repository at https://github.com/blaisekelly/stats19_stats.
-
-The LA boundary is shown on this plot of the cycle network (from OSM data processed with the osmactive package).
+#The LA boundary is shown on this plot of the cycle network (from OSM data processed with the osmactive package).
 ```{r}
 #| echo: false
 #| fig.height: 5 

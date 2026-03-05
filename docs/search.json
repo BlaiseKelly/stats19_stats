@@ -54,5 +54,19 @@
     "title": "STATS19 reported road casualties: LA region of Bristol",
     "section": "",
     "text": "Between 2020 and 2024, nationally there were 9327 single-vehicle collisions where a pedestrian was struck on a footway or verge. 81% were people driving Cars, Taxis, Goods vehicles and Buses and 12% were people riding pedal cycles and e-scooters. Of these collisions there were 138 fatalities, 94% of these fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and 1% died from collisions with people riding pedal cycles and e-scooters. A further 2300 serious injuries, 79% of the fatal collisions were with people driving Cars, Taxis, Goods vehicles and Buses and 13% from collisions with people riding pedal cycles and e-scooters.\nIn Bristol there were 98 reported incidents, resulting in 103 casualties. The vehicle type most commonly involved was Car with 40 collisions and 43 casualties. 64% of the vehicles in collisions were people driving Cars, Taxis, Goods vehicles and Buses and 31% were people riding pedal cycles and escooters. Of these collisions there were 3 fatalities, 100% of these collisions were with people driving Cars, Taxis, Goods vehicles and Buses and 0% from collisions with people riding pedal cycles and e-scooters. A further 12 serious injuries, 75% of which were with people driving Cars, Taxis, Goods vehicles and Buses and 25% from collisions with people riding pedal cycles and e-scooters. The plot below is meant to visually represent a pavement with squares for all the KSI casualties in Bristol coloured by the vehicle that hit them."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "STATS19 Stats",
+    "section": "",
+    "text": "These pages show the outputs of the functions/markdown scripts in stats19_stats, which build on the import functions in the stats19 R package.\nThe goal of this repository/website is to facilitate people to easily reproduce the DfTs statistical summaries for their local area and/or additional plots and insights to provide data for campaigns where road safety is significant.\nThe first page is the outputs of the script ‘report.R’, a report that can be reproduced for any LA, shown here for Bristol.\nThe ‘DfT Pedestrian factsheet’ is a reproduction of the government pedestrian factsheet. The file in the Rmd folder “dft_pedestrian_factsheet.qmd” gives the code to reproduce the plots used in the official DfT report."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "The R package stats19 has been used to access the DfT data."
   }
 ]

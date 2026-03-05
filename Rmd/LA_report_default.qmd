@@ -1,5 +1,5 @@
 ---
-title: "STATS19 reported road casualties: LA region of Bristol"
+title: "STATS19 reported road casualties: LA region of AUTHORITY"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:
@@ -20,7 +20,7 @@ library(data.table)
 library(htmltools)
 library(reactable)
 
-la_name = "Bristol"
+la_name = "AUTHORITY"
 
 la_dir = paste0("outputs/", la_name)
 

@@ -1,0 +1,39 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - about.qmd
+    - LA_report.qmd
+
+
+website:
+  title: "stats19_stats"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: LA_report.qmd
+        text: Stats19 LA of AUTHORITY
+      - href: outputs/AUTHORITY/maps/cas_location_Speed limit.html
+        text: Casualty location AUTHORITY
+      - href: outputs/AUTHORITY/maps/osm_casualty_type_Total.html
+        text: Map casualties by OSM road link
+      - href: outputs/AUTHORITY/tables/cas_osm.html
+        text: Table of casualties by OSM road link AUTHORITY
+      - href: outputs/AUTHORITY/tables/cas_msoa_rank.html
+        text: Casualties home MSOA ranked
+      - href: outputs/AUTHORITY/tables/cas_col_rate.html
+        text: Casualty rate and speed limits table
+      - about.qmd
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    toc: true
+
+
+

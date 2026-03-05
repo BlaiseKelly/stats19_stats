@@ -36,8 +36,6 @@ source("R/map.R")
 
 select = dplyr::select
 
-authority = "Bath"
-
 # define LA name
 la_name = authority
 

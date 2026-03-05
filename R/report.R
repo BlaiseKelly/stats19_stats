@@ -276,7 +276,7 @@ city_shp_osm = get_la_boundaries(city_name = la_name, source = "ons") |>
 area_bb <- st_bbox(city_shp_osm)
 
 ##download landuse from osm
-x <- opq(bbox = area_bb) %>%
+x <- opq(bbox = area_bb,timeout = 999) %>%
   add_osm_feature(key = c('highway')) %>%
   osmdata_sf()
 

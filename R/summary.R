@@ -1465,7 +1465,7 @@ summarise_lsoa <- function(casualties = NULL, vehicles = NULL, collisions = NULL
   }
   if(!is.null(collisions)){
     
-    groups_lsoa <- crashes |> 
+    groups_lsoa <- collisions |> 
       st_transform(4326) |> 
       st_join(lsoa_geo) |> 
       st_set_geometry(NULL) |> 
@@ -1501,7 +1501,8 @@ summarise_lsoa <- function(casualties = NULL, vehicles = NULL, collisions = NULL
       summarise(persons = n()) |> 
       filter(!is.na(lsoa21_name)) |> 
       left_join(lsoa_geo, by = "lsoa21_name") |> 
-      left_join(lsoa21_outside, by = "lsoa21_name")
+      left_join(lsoa21_outside, by = "lsoa21_name") |>
+      filter(!is.na(lsoa21_code.x))
   
   st_geometry(groups_lsoa) <- groups_lsoa$geometry
   

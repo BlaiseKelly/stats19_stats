@@ -1265,7 +1265,6 @@ map_lsoa_home <- function(casualty_df = NULL, vehicle_df = NULL,
                           end_year = 2024,
                           info_position = c(0,0.2)){
   
-  
   if(!is.null(casualty_df)){
     lsoa_all = summarise_lsoa(casualties = casualty_df,lsoa_geo = lsoa_geo,city_shp = city_shp,base_year = base_year, end_year = end_year)
     legend_title = "casualties"
@@ -1315,17 +1314,34 @@ map_lsoa_home <- function(casualty_df = NULL, vehicle_df = NULL,
     alp = 0.7
     
   } else {
-    tm1 = NULL
+    tm1 = tm_shape(city_shp) +
+      tm_polygons(fill_alpha = 0, col_alpha = 0)
+    
     alp = 1}
   
+  if(max(lsoa_plot$persons)>1){
   
-  tm1 <- tm1+
+  tm1 = tm1+
     tm_shape(lsoa_plot) +
     tm_polygons(fill = "persons",fill_alpha = alp,
                 fill.scale = tm_scale_intervals(values = palette),
                 fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
-                lwd = 0.1)+
-    tm_credits(
+                lwd = 0.1)
+  
+  } else {
+    
+    col4one = c4a(palette)[1]
+  
+  tm1 = tm1+
+    tm_shape(lsoa_plot) +
+    tm_polygons(fill = col4one,
+                fill.legend = tm_legend(legend_title, frame = FALSE,legend.border.col = NA),
+                lwd = 0.1)
+  
+  }
+  
+    tm1 = tm1 + 
+      tm_credits(
       credit_title,
       position = info_position,
       fontface = "bold") +

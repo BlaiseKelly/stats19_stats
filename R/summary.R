@@ -606,17 +606,17 @@ summarise_vehicle_types <- function(vehicles, summary_type = c("short_name", "dr
                                                 "Van / Goods 3.5 tonnes mgw or under","Motorcycle 50cc and under","Other vehicle","Pedal cycle",                      
                                                 "Motorcycle - unknown cc","Electric motorcycle","e-scooter","Minibus (8 - 16 passenger seats)",     
                                                 "Mobility scooter","Unknown vehicle type (self rep only)","Agricultural vehicle","Goods vehicle - unknown weight",    
-                                                "Data missing or out of range","Ridden horse"),
+                                                "Data missing or out of range","Ridden horse","Tram"),
                                short_name =  c("Car","Motorcycle","Taxi","Motorcycle", "Motorcycle","Goods vehicle","Goods vehicle","Bus",
                                                "Goods vehicle","Motorcycle","Other vehicle","Pedal cycle","Motorcycle","Motorcycle","e-scooter","Bus",     
-                                               "Mobility scooter","Other vehicle","Agricultural vehicle","Goods vehicle","Data missing or out of range","Ridden horse"),
+                                               "Mobility scooter","Other vehicle","Agricultural vehicle","Goods vehicle","Data missing or out of range","Ridden horse","Tram"),
                                driver_type =  c("Car driver","Motorcyclist","Taxi driver","Motorcyclist", "Motorcyclist","Goods vehicle driver","Goods vehicle driver","Bus driver",
                                                 "Goods vehicle driver","Motorcyclist","Other vehicle","Cyclist","Motorcyclist","Motorcyclist","E-scooter driver","Bus driver",     
-                                                "Mobility scooter rider","Other vehicle","Agricultural vehicle driver","Goods vehicle driver","Data missing","Horse rider"))
+                                                "Mobility scooter rider","Other vehicle","Agricultural vehicle driver","Goods vehicle driver","Data missing","Horse rider","Tram driver"))
   
   veh_new_types <- vehicles |>
-    left_join(vehicle_groups, by = "vehicle_type") |> 
-    mutate(vehicle_type = !!sym(summary_type))
+    left_join(vehicle_groups, by = "vehicle_type")
+    #mutate(vehicle_type = !!sym(summary_type))
   
   return(veh_new_types)
   
